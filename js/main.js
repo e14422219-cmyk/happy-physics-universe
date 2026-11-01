@@ -479,3 +479,5 @@ function checkAchievements() {
 // ---------------- boot ----------------
 applyDir();
 route();
+window.__booted = true;
+document.getElementById('boot-error').hidden = true;

@@ -12,7 +12,8 @@ export class Stage {
     this.scale = 1; this.ox = 0; this.oy = 0; this.dpr = 1;
     this.pointerId = null;
 
-    new ResizeObserver(() => this.resize()).observe(canvas.parentElement);
+    if (window.ResizeObserver) new ResizeObserver(() => this.resize()).observe(canvas.parentElement);
+    else window.addEventListener('resize', () => this.resize());
 
     canvas.addEventListener('pointerdown', e => {
       canvas.focus({ preventScroll: true });
