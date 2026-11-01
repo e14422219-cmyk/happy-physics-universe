@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Happy Physics Universe | كون الفيزياء السعيد</title>
+  <meta name="description" content="Happy Physics Universe — six educational physics games: projectile motion, fluids, electromagnetic induction, circuits, optics and energy.">
+  <meta name="theme-color" content="#2b1d6e">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <section id="screen-home" class="screen" aria-label="Home"></section>
+    <section id="screen-levels" class="screen" aria-label="Levels"></section>
+    <section id="screen-game" class="screen" aria-label="Game">
+      <header class="game-top">
+        <button class="icon-btn" id="g-back" aria-label="Back">⟵</button>
+        <div class="game-top-title">
+          <strong id="g-title"></strong>
+          <span id="g-sub"></span>
+        </div>
+        <div class="game-top-actions">
+          <button class="icon-btn" id="g-help" aria-label="Help">?</button>
+          <button class="icon-btn" id="g-restart" aria-label="Restart">↻</button>
+        </div>
+      </header>
+      <div class="game-body">
+        <div class="stage-wrap">
+          <canvas id="stage" dir="ltr" tabindex="0" aria-label="Game canvas"></canvas>
+          <div class="stage-hint" id="g-hint" aria-live="polite"></div>
+          <div class="stage-banner" id="g-banner"></div>
+        </div>
+        <aside class="sci-panel" aria-label="Physics panel">
+          <section class="sci-block">
+            <h3 data-i18n="panel.controls"></h3>
+            <div id="g-controls" class="controls"></div>
+          </section>
+          <section class="sci-block">
+            <h3 data-i18n="panel.live"></h3>
+            <table id="g-vars" class="vars"></table>
+          </section>
+          <section class="sci-block">
+            <h3 data-i18n="panel.equations"></h3>
+            <div id="g-formulas" class="formulas"></div>
+          </section>
+          <section class="sci-block">
+            <h3 data-i18n="panel.terms"></h3>
+            <div id="g-terms" class="terms"></div>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </div>
+  <div id="wipe" aria-hidden="true"></div>
+  <div id="modal-root"></div>
+  <div id="toast-root" aria-live="polite"></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
