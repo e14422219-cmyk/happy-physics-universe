@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Device check | فحص الجهاز</title>
+  <style>
+    body { margin: 0; font: 600 17px/1.6 system-ui, -apple-system, sans-serif; background: #2b1d6e; color: #fff; padding: 20px; }
+    .box { background: #fff; color: #241a4f; border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; }
+    .ok { color: #13a87a; } .bad { color: #d94848; }
+    code { direction: ltr; display: block; font-size: 12px; word-break: break-all; background: #f3efff; padding: 8px; border-radius: 8px; }
+    a { color: #ffc93c; }
+  </style>
+</head>
+<body>
+  <div class="box"><b class="ok">✔ الموقع يفتح على جهازك</b><br>إذا ظهرت هذه الصفحة فالشبكة سليمة، والمشكلة في تشغيل اللعبة نفسها.</div>
+  <div class="box" id="checks">جارٍ الفحص…</div>
+  <div class="box">صوّر هذه الصفحة كاملة وأرسلها.<br><a href="./">← فتح اللعبة</a></div>
+  <script>
+    var rows = [], ok = function (name, v) { rows.push('<div class="' + (v ? 'ok' : 'bad') + '">' + (v ? '✔ ' : '✖ ') + name + '</div>'); };
+    ok('ES modules', 'noModule' in document.createElement('script'));
+    ok('Optional chaining ?.', (function () { try { return new Function('return ({a:1})?.a')() === 1; } catch (e) { return false; } })());
+    ok('Canvas 2D', !!document.createElement('canvas').getContext);
+    ok('Pointer events', !!window.PointerEvent);
+    ok('ResizeObserver', !!window.ResizeObserver);
+    ok('localStorage', (function () { try { localStorage.setItem('t', '1'); localStorage.removeItem('t'); return true; } catch (e) { return false; } })());
+    rows.push('<code>' + navigator.userAgent.replace(/</g, '&lt;') + '</code>');
+    document.getElementById('checks').innerHTML = rows.join('');
+  </script>
+</body>
+</html>
