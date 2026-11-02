@@ -58,7 +58,7 @@ const STRINGS = {
     ar: 'تحتاج البومة العالِمة «نور» إلى فيزيائي شجاع. استخدم قوانين الفيزياء الحقيقية لحلّ ألغاز كل إقليم واستعادة البلّورات!'
   },
   'ach.title': { en: 'Achievements', ar: 'الإنجازات' },
-  'confirm.reset': { en: 'Erase all progress on this device?', ar: 'هل تريد مسح كل التقدّم على هذا الجهاز؟' },
+  'confirm.reset': { en: 'Tap again to erase all progress', ar: 'اضغط مرة أخرى لمسح كل التقدّم' },
   'ending.text': {
     en: 'All six crystals shine again. Motion, water, magnetism, electricity, light and energy are back in balance — thanks to your physics skills!',
     ar: 'عادت البلّورات الست تتلألأ من جديد. الحركة والماء والمغناطيسية والكهرباء والضوء والطاقة عادت إلى توازنها — بفضل مهاراتك في الفيزياء!'

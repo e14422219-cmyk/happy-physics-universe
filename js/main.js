@@ -22,8 +22,12 @@ window.hpu = { stage };   // handy for debugging from the console
 let session = null;
 
 // ---------------- routing ----------------
+// The current route lives in memory so navigation also works inside embedded frames
+// (claude.ai artifacts) where hash changes may not reach the page; the URL is kept in sync when allowed.
+let current = location.hash;
+
 function route() {
-  const parts = location.hash.replace(/^#\/?/, '').split('/');
+  const parts = current.replace(/^#\/?/, '').split('/');
   closeModal();
   if (parts[0] === 'g' && MODULES[parts[1]]) return showLevels(parts[1]);
   if (parts[0] === 'p' && MODULES[parts[1]]) {
@@ -33,7 +37,14 @@ function route() {
   }
   showHome();
 }
-function go(hash) { if (location.hash === hash) route(); else location.hash = hash; }
+function go(hash) {
+  if (hash !== current) {
+    current = hash;
+    try { history.pushState(null, '', hash); } catch { /* frame without history access */ }
+  }
+  route();
+}
+window.addEventListener('popstate', () => { current = location.hash; route(); });
 
 // Circular colour wipe from the tap point, then route behind it and fade out.
 let wiping = false;
@@ -53,7 +64,7 @@ function wipeTo(hash, gameId, ev) {
     setTimeout(() => { w.className = ''; w.innerHTML = ''; wiping = false; }, 520);
   }, 470);
 }
-window.addEventListener('hashchange', route);
+window.addEventListener('hashchange', () => { if (location.hash !== current) { current = location.hash; route(); } });
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
@@ -444,8 +455,12 @@ function showAchievements() {
       <div class="ach ${store.achievements[a.id] ? '' : 'locked'}"><div class="ic">${a.icon}</div><div><b>${L(a.name)}</b><small>${L(a.desc)}</small></div></div>`).join('')}
     </div>
     <div class="actions"><button class="btn coral small" id="a-reset">${t('btn.reset')}</button></div>`, { closable: true });
-  m.querySelector('#a-reset').onclick = () => {
-    if (confirm(t('confirm.reset'))) { store.reset(); closeModal(); showHome(); }
+  // two-step confirmation inside the page (embedded frames block confirm())
+  const reset = m.querySelector('#a-reset');
+  reset.onclick = () => {
+    if (reset.dataset.armed) { store.reset(); closeModal(); showHome(); return; }
+    reset.dataset.armed = '1';
+    reset.textContent = t('confirm.reset');
   };
 }
 
