@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>محوّل التاريخ الهجري والميلادي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Reem+Kufi:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1630; --bg2:#13254a; --card:rgba(255,255,255,.06); --card-solid:#15274d;
+    --ink:#f3ecd9; --muted:#a9b3c9; --gold:#e3b866; --gold2:#c8963e; --gold-soft:rgba(227,184,102,.14);
+    --line:rgba(227,184,102,.22); --field:rgba(255,255,255,.07); --err:#ff8f80; --on-gold:#1a1405;
+    --pattern-op:.07;
+  }
+  [data-theme="light"]{
+    --bg:#f7f0e1; --bg2:#efe3c8; --card:rgba(255,255,255,.7); --card-solid:#fffaf0;
+    --ink:#1d2340; --muted:#6c6a78; --gold:#a8741f; --gold2:#8a5c12; --gold-soft:rgba(168,116,31,.12);
+    --line:rgba(168,116,31,.25); --field:#fffdf7; --err:#b3261e; --on-gold:#fff;
+    --pattern-op:.06;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{background:var(--bg)}
+  body{margin:0;color:var(--ink);font-family:"Tajawal",system-ui,sans-serif;min-height:100vh;
+    display:flex;justify-content:center;padding:14px 14px 40px;
+    background:radial-gradient(120% 60% at 50% 0%,var(--bg2),var(--bg) 70%);background-attachment:fixed;
+    transition:background .3s,color .3s;position:relative}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:var(--pattern-op);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='none' stroke='%23e3b866' stroke-width='1.2'%3E%3Cpath d='M40 6l9.9 24.1L74 40l-24.1 9.9L40 74l-9.9-24.1L6 40l24.1-9.9z'/%3E%3Crect x='22' y='22' width='36' height='36' transform='rotate(45 40 40)'/%3E%3Ccircle cx='40' cy='40' r='7'/%3E%3C/g%3E%3C/svg%3E");
+    background-size:80px 80px}
+  .stars{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+  .stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:.6;animation:tw 3s infinite ease-in-out}
+  [data-theme="light"] .stars{display:none}
+  @keyframes tw{50%{opacity:.1}}
+  .wrap{width:100%;max-width:480px;position:relative;z-index:1}
+
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .themeBtn{border:1px solid var(--line);background:var(--card);color:var(--gold);width:40px;height:40px;border-radius:12px;
+    font-size:1.1rem;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  header{text-align:center;margin:0 0 16px}
+  .moon{width:64px;height:64px;margin:0 auto 6px;display:block;filter:drop-shadow(0 0 18px rgba(227,184,102,.45))}
+  header h1{font-family:"Reem Kufi","Tajawal",sans-serif;font-size:1.9rem;margin:0;font-weight:700;color:var(--gold);letter-spacing:.5px}
+  header p{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+
+  .today{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--on-gold);border-radius:22px;padding:18px;
+    margin-bottom:14px;text-align:center;position:relative;overflow:hidden;box-shadow:0 10px 30px -12px rgba(227,184,102,.55)}
+  [data-theme="dark"] .today,:root:not([data-theme]) .today{color:#1a1405}
+  .today::before{content:"";position:absolute;inset:0;opacity:.13;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M20 2l5 13 13 5-13 5-5 13-5-13-13-5 13-5z' fill='none' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E")}
+  .today>*{position:relative}
+  .today small{opacity:.75;font-size:.85rem;font-weight:700}
+  .today .h{font-size:1.35rem;font-weight:800;margin-top:4px}
+  .today .g{opacity:.8;margin-top:2px;font-weight:500}
+
+  .events{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+  .ev{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 4px;text-align:center;
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .ev .n{font-size:1.3rem;font-weight:800;color:var(--gold);line-height:1.1}
+  .ev .u{font-size:.7rem;color:var(--muted)}
+  .ev .t{font-size:.76rem;font-weight:700;margin-top:4px}
+  .ev.now{background:var(--gold-soft);border-color:var(--gold)}
+  .ev.now .n{font-size:1rem}
+
+  .tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:4px;margin-bottom:12px;gap:2px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .tabs button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:700;padding:10px 4px;border-radius:12px;cursor:pointer;font-size:.9rem;transition:.2s}
+  .tabs button.on{background:var(--gold);color:var(--on-gold)}
+  :root:not([data-theme="light"]) .tabs button.on{color:#1a1405}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .seg{display:flex;gap:6px;margin-bottom:14px}
+  .seg button{flex:1;border:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;font-weight:700;padding:9px;border-radius:12px;cursor:pointer}
+  .seg button.on{border-color:var(--gold);background:var(--gold-soft);color:var(--gold)}
+  .lbl{font-size:.85rem;font-weight:700;margin:2px 0 8px;color:var(--gold)}
+  .row{display:grid;grid-template-columns:1fr 1.7fr 1.2fr;gap:8px}
+  .row + .lbl{margin-top:14px}
+  label{display:block;font-size:.75rem;color:var(--muted);margin-bottom:4px}
+  select,input{width:100%;font:inherit;font-size:1.05rem;padding:11px 8px;border:1px solid var(--line);
+    border-radius:12px;background:var(--field);color:var(--ink);text-align:center;appearance:none;-webkit-appearance:none}
+  select option{background:var(--card-solid);color:var(--ink)}
+  select:focus,input:focus{outline:2px solid var(--gold);outline-offset:1px}
+  .actions{display:flex;gap:8px;margin-top:14px}
+  .go{flex:1;border:0;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--on-gold);font:inherit;font-weight:800;
+    font-size:1.05rem;padding:13px;border-radius:14px;cursor:pointer;box-shadow:0 6px 18px -8px rgba(227,184,102,.7)}
+  :root:not([data-theme="light"]) .go{color:#1a1405}
+  .ghost{border:1px solid var(--line);background:transparent;color:var(--gold);font:inherit;font-weight:700;padding:13px 14px;border-radius:14px;cursor:pointer}
+  .go:active,.ghost:active{transform:scale(.98)}
+
+  .result{margin-top:16px;padding:18px 14px;border-radius:18px;background:var(--gold-soft);border:1px solid var(--line);text-align:center;display:none}
+  .result.show{display:block;animation:pop .3s ease}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .result .big{font-size:1.4rem;font-weight:800;color:var(--gold)}
+  .result .sub{margin-top:6px;color:var(--muted);line-height:1.8}
+  .result.err{background:transparent;border-color:var(--err)}
+  .result.err .big{color:var(--err);font-size:1.02rem}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .stat{background:var(--field);border-radius:12px;padding:8px 4px}
+  .stat b{display:block;font-size:1.05rem}
+  .stat span{font-size:.72rem;color:var(--muted)}
+  .copy{margin-top:12px;border:1px solid var(--gold);background:transparent;color:var(--gold);
+    font:inherit;font-weight:700;padding:7px 20px;border-radius:999px;cursor:pointer}
+  .note{color:var(--muted);font-size:.8rem;text-align:center;margin-top:18px;line-height:1.7}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<div class="wrap">
+  <div class="top">
+    <span></span>
+    <button class="themeBtn" id="themeBtn" aria-label="تغيير الثيم">☀️</button>
+  </div>
+  <header>
+    <svg class="moon" viewBox="0 0 64 64" aria-hidden="true">
+      <defs><linearGradient id="mg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6d58e"/><stop offset="1" stop-color="#c8963e"/></linearGradient></defs>
+      <path d="M40 8a24 24 0 1 0 16 41A20 20 0 1 1 40 8z" fill="url(#mg)"/>
+      <path d="M48 16l1.8 4.6 4.6 1.8-4.6 1.8L48 28.8l-1.8-4.6-4.6-1.8 4.6-1.8z" fill="#f6d58e"/>
+    </svg>
+    <h1>محوّل التاريخ</h1>
+    <p>هجري ⇄ ميلادي · تقويم أم القرى</p>
+  </header>
+
+  <div class="today">
+    <small>اليوم</small>
+    <div class="h" id="todayH"></div>
+    <div class="g" id="todayG"></div>
+  </div>
+
+  <div class="events" id="events"></div>
+
+  <div class="tabs">
+    <button data-tab="conv" class="on">تحويل</button>
+    <button data-tab="age">حساب العمر</button>
+    <button data-tab="diff">الفرق بين تاريخين</button>
+  </div>
+
+  <div class="card">
+    <!-- تحويل -->
+    <section id="conv">
+      <div class="seg" id="convSeg">
+        <button data-v="H" class="on">هجري ← ميلادي</button>
+        <button data-v="G">ميلادي ← هجري</button>
+      </div>
+      <div id="convIn"></div>
+      <div class="actions">
+        <button class="go" id="convGo">حوّل</button>
+        <button class="ghost" id="convToday">اليوم</button>
+      </div>
+    </section>
+
+    <!-- العمر -->
+    <section id="age" hidden>
+      <div class="seg" id="ageSeg">
+        <button data-v="G" class="on">ميلادي</button>
+        <button data-v="H">هجري</button>
+      </div>
+      <div class="lbl">تاريخ الميلاد</div>
+      <div id="ageIn"></div>
+      <div class="actions"><button class="go" id="ageGo">احسب العمر</button></div>
+    </section>
+
+    <!-- الفرق -->
+    <section id="diff" hidden>
+      <div class="seg" id="diffSeg">
+        <button data-v="G" class="on">ميلادي</button>
+        <button data-v="H">هجري</button>
+      </div>
+      <div class="lbl">من تاريخ</div>
+      <div id="diffA"></div>
+      <div class="lbl">إلى تاريخ</div>
+      <div id="diffB"></div>
+      <div class="actions"><button class="go" id="diffGo">احسب الفرق</button></div>
+    </section>
+
+    <div class="result" id="res">
+      <div class="big" id="resBig"></div>
+      <div class="sub" id="resSub"></div>
+      <div class="stats" id="resStats" hidden></div>
+      <button class="copy" id="copyBtn" type="button">نسخ</button>
+    </div>
+  </div>
+
+  <p class="note">يعتمد على تقويم أم القرى الرسمي في السعودية، ويشتغل بدون إنترنت بعد ما يفتح.<br>بداية بعض الشهور (مثل رمضان والعيد) قد تختلف يومًا عن رؤية الهلال الفعلية.</p>
+</div>
+
+<script>
+const H_MONTHS=["محرم","صفر","ربيع الأول","ربيع الآخر","جمادى الأولى","جمادى الآخرة","رجب","شعبان","رمضان","شوال","ذو القعدة","ذو الحجة"];
+const G_MONTHS=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const DAYS=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const DAY=86400000, HMIN=1300, HMAX=1600, GMIN=1883, GMAX=2174;
+const fmt=new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn",{timeZone:"UTC",year:"numeric",month:"numeric",day:"numeric"});
+const $=id=>document.getElementById(id);
+
+/* ---------- محرك التحويل ---------- */
+function toHijri(ms){
+  const p={};fmt.formatToParts(new Date(ms)).forEach(x=>p[x.type]=x.value);
+  return {y:parseInt(p.year),m:parseInt(p.month),d:parseInt(p.day)};
+}
+function cmp(a,b){return (a.y-b.y)||(a.m-b.m)||(a.d-b.d);}
+function fromHijri(y,m,d){
+  let ms=Date.UTC(622,6,19)+Math.round((y-1)*354.36667+(m-1)*29.5306+(d-1))*DAY;
+  for(let i=0;i<60;i++){
+    const h=toHijri(ms); if(cmp(h,{y,m,d})===0)return ms;
+    const diff=(y-h.y)*354+(m-h.m)*29.5+(d-h.d);
+    ms+=(Math.abs(diff)<2?Math.sign(diff):Math.round(diff))*DAY;
+  }
+  return null;
+}
+function hMonthLen(y,m){return fromHijri(y,m,30)===null?29:30;}
+function gMonthLen(y,m){return new Date(Date.UTC(y,m,0)).getUTCDate();}
+function hStr(h){return h.d+" "+H_MONTHS[h.m-1]+" "+h.y+" هـ";}
+function gParts(ms){const t=new Date(ms);return {y:t.getUTCFullYear(),m:t.getUTCMonth()+1,d:t.getUTCDate()};}
+function gStr(ms){const g=gParts(ms);return g.d+" "+G_MONTHS[g.m-1]+" "+g.y+" م";}
+function dayName(ms){return DAYS[new Date(ms).getUTCDay()];}
+function num(n){return n.toLocaleString("en-US");}
+function plural(n,one,two,few,many){return n===0?"":n===1?one:n===2?two:(n>=3&&n<=10)?n+" "+few:n+" "+many;}
+const yW=n=>plural(n,"سنة","سنتين","سنوات","سنة");
+const mW=n=>plural(n,"شهر","شهرين","أشهر","شهرًا");
+const dW=n=>plural(n,"يوم","يومين","أيام","يومًا");
+function joinParts(a){a=a.filter(Boolean);return a.length?a.join(" و "):"0 يوم";}
+
+/* فرق تقويمي (سنوات/أشهر/أيام) بين تاريخين بنفس التقويم */
+function calDiff(a,b,lenFn){
+  let y=b.y-a.y,m=b.m-a.m,d=b.d-a.d;
+  if(d<0){m--;let pm=b.m-1,py=b.y;if(pm<1){pm=12;py--;}d+=lenFn(py,pm);}
+  if(m<0){y--;m+=12;}
+  return {y,m,d};
+}
+
+/* ---------- حقول الإدخال ---------- */
+function dateInputs(host,cal,init){
+  const months=cal==="H"?H_MONTHS:G_MONTHS;
+  const maxD=cal==="H"?30:31;
+  host.innerHTML=`<div class="row">
+    <div><label>اليوم</label><select>${Array.from({length:maxD},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join("")}</select></div>
+    <div><label>الشهر</label><select>${months.map((n,i)=>`<option value="${i+1}">${i+1} - ${n}</option>`).join("")}</select></div>
+    <div><label>السنة</label><input type="number" inputmode="numeric"></div></div>`;
+  const [d,m]=host.querySelectorAll("select"),y=host.querySelector("input");
+  host.set=v=>{d.value=v.d;m.value=v.m;y.value=v.y;};
+  host.get=()=>({d:+d.value,m:+m.value,y:+y.value,cal});
+  host.cal=cal;
+  if(init)host.set(init);
+}
+/* يرجع ms أو رسالة خطأ */
+function readMs(v){
+  if(v.cal==="H"){
+    if(!v.y||v.y<HMIN||v.y>HMAX)return {err:`أدخل سنة هجرية بين ${HMIN} و ${HMAX}`};
+    const ms=fromHijri(v.y,v.m,v.d);
+    if(ms===null)return {err:`شهر ${H_MONTHS[v.m-1]} ${v.y} هـ عدد أيامه 29 يومًا فقط`};
+    return {ms};
+  }
+  if(!v.y||v.y<GMIN||v.y>GMAX)return {err:`أدخل سنة ميلادية بين ${GMIN} و ${GMAX}`};
+  if(v.d>gMonthLen(v.y,v.m))return {err:`شهر ${G_MONTHS[v.m-1]} ${v.y} عدد أيامه ${gMonthLen(v.y,v.m)} فقط`};
+  return {ms:Date.UTC(v.y,v.m-1,v.d)};
+}
+
+/* ---------- اليوم والمناسبات ---------- */
+const now=new Date();
+const todayMs=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+const TH=toHijri(todayMs), TG=gParts(todayMs);
+$("todayH").textContent=dayName(todayMs)+" "+hStr(TH);
+$("todayG").textContent=gStr(todayMs);
+
+const EVENTS=[
+  {t:"رمضان",m:9,d:1,len:30},
+  {t:"عيد الفطر",m:10,d:1,len:3},
+  {t:"يوم عرفة",m:12,d:9,len:1},
+  {t:"عيد الأضحى",m:12,d:10,len:4},
+];
+$("events").innerHTML=EVENTS.map(e=>{
+  for(const y of [TH.y-1,TH.y,TH.y+1]){
+    const s=fromHijri(y,e.m,e.d); if(s===null)continue;
+    const days=Math.round((s-todayMs)/DAY);
+    if(days<=0 && days>-e.len)return `<div class="ev now"><div class="n">الآن</div><div class="u">&nbsp;</div><div class="t">${e.t}</div></div>`;
+    if(days>0)return `<div class="ev" title="${gStr(s)}"><div class="n">${num(days)}</div><div class="u">يوم</div><div class="t">${e.t}</div></div>`;
+  }
+  return "";
+}).join("");
+
+/* ---------- التبويبات ---------- */
+function bindSeg(id,cb){
+  const seg=$(id);
+  seg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    seg.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+    hideRes();cb(b.dataset.v);
+  });
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  ["conv","age","diff"].forEach(s=>$(s).hidden=s!==b.dataset.tab);
+  hideRes();
+  try{localStorage.setItem("tab",b.dataset.tab);}catch(_){}
+});
+const todayFor=cal=>cal==="H"?TH:TG;
+
+/* تحويل */
+let convCal="H";
+dateInputs($("convIn"),"H",TH);
+bindSeg("convSeg",v=>{convCal=v;dateInputs($("convIn"),v,todayFor(v));});
+$("convToday").onclick=()=>{$("convIn").set(todayFor(convCal));hideRes();};
+$("convGo").onclick=()=>{
+  const v=$("convIn").get(),r=readMs(v);
+  if(r.err)return showErr(r.err);
+  if(convCal==="H")show(gStr(r.ms),"يوم "+dayName(r.ms)+" · الموافق "+hStr(v));
+  else show(hStr(toHijri(r.ms)),"يوم "+dayName(r.ms)+" · الموافق "+gStr(r.ms));
+};
+
+/* العمر */
+dateInputs($("ageIn"),"G",{d:1,m:1,y:2000});
+bindSeg("ageSeg",v=>dateInputs($("ageIn"),v,v==="H"?{d:1,m:1,y:1420}:{d:1,m:1,y:2000}));
+$("ageGo").onclick=()=>{
+  const r=readMs($("ageIn").get());
+  if(r.err)return showErr(r.err);
+  if(r.ms>todayMs)return showErr("تاريخ الميلاد بعد اليوم!");
+  const bG=gParts(r.ms),bH=toHijri(r.ms);
+  const ag=calDiff(bG,TG,gMonthLen), ah=calDiff(bH,TH,hMonthLen);
+  const total=Math.round((todayMs-r.ms)/DAY);
+  // عيد الميلاد القادم (ميلادي)
+  let nb=Date.UTC(TG.y,bG.m-1,Math.min(bG.d,gMonthLen(TG.y,bG.m)));
+  if(nb<todayMs)nb=Date.UTC(TG.y+1,bG.m-1,Math.min(bG.d,gMonthLen(TG.y+1,bG.m)));
+  const toNext=Math.round((nb-todayMs)/DAY);
+  show(
+    "عمرك "+joinParts([yW(ag.y),mW(ag.m),dW(ag.d)]),
+    "بالهجري: "+joinParts([yW(ah.y),mW(ah.m),dW(ah.d)])+
+    "<br>وُلدت يوم "+dayName(r.ms)+" "+gStr(r.ms)+" · "+hStr(bH)+
+    "<br>"+(toNext===0?"🎉 اليوم عيد ميلادك!":"باقي على عيد ميلادك "+dW(toNext).replace(/^(\d+)/,m=>num(+m))),
+    [[num(total),"يوم"],[num(Math.floor(total/7)),"أسبوع"],[num(ag.y*12+ag.m),"شهر"]]
+  );
+};
+
+/* الفرق */
+dateInputs($("diffA"),"G",TG);dateInputs($("diffB"),"G",TG);
+bindSeg("diffSeg",v=>{dateInputs($("diffA"),v,todayFor(v));dateInputs($("diffB"),v,todayFor(v));});
+$("diffGo").onclick=()=>{
+  const va=$("diffA").get(),vb=$("diffB").get();
+  const a=readMs(va),b=readMs(vb);
+  if(a.err)return showErr("من تاريخ: "+a.err);
+  if(b.err)return showErr("إلى تاريخ: "+b.err);
+  let [s,e]=a.ms<=b.ms?[a.ms,b.ms]:[b.ms,a.ms];
+  const total=Math.round((e-s)/DAY);
+  const H=va.cal==="H";
+  const dd=H?calDiff(toHijri(s),toHijri(e),hMonthLen):calDiff(gParts(s),gParts(e),gMonthLen);
+  show(
+    joinParts([yW(dd.y),mW(dd.m),dW(dd.d)]),
+    (H?hStr(toHijri(s))+" ← "+hStr(toHijri(e)):gStr(s)+" ← "+gStr(e))+
+    "<br>"+(H?"بالميلادي: "+gStr(s)+" ← "+gStr(e):"بالهجري: "+hStr(toHijri(s))+" ← "+hStr(toHijri(e))),
+    [[num(total),"يوم"],[num(Math.floor(total/7)),"أسبوع"],[(total/365.2425).toFixed(1),"سنة تقريبًا"]]
+  );
+};
+
+/* ---------- النتيجة ---------- */
+function hideRes(){$("res").className="result";}
+function show(big,sub,stats){
+  $("resBig").textContent=big;$("resSub").innerHTML=sub||"";
+  const st=$("resStats");
+  if(stats){st.innerHTML=stats.map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");st.hidden=false;}
+  else st.hidden=true;
+  $("copyBtn").hidden=false;
+  $("res").className="result";void $("res").offsetWidth;$("res").className="result show";
+}
+function showErr(msg){
+  $("resBig").textContent=msg;$("resSub").textContent="";$("resStats").hidden=true;$("copyBtn").hidden=true;
+  $("res").className="result show err";
+}
+$("copyBtn").onclick=async()=>{
+  const txt=$("resBig").textContent+"\n"+$("resSub").innerText;
+  try{await navigator.clipboard.writeText(txt);$("copyBtn").textContent="تم النسخ ✓";}
+  catch(_){$("copyBtn").textContent="انسخ يدويًا";}
+  setTimeout(()=>$("copyBtn").textContent="نسخ",1500);
+};
+
+
+/* ---------- الثيم والنجوم ---------- */
+(function(){
+  const st=$("stars");let h="";
+  for(let i=0;i<40;i++)h+=`<i style="top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${(Math.random()*3).toFixed(2)}s;opacity:${(.2+Math.random()*.6).toFixed(2)}"></i>`;
+  st.innerHTML=h;
+  const root=document.documentElement,btn=$("themeBtn");
+  function apply(t){root.dataset.theme=t;btn.textContent=t==="light"?"🌙":"☀️";}
+  let t="dark";try{t=localStorage.getItem("theme")||"dark";}catch(_){}
+  apply(t);
+  btn.onclick=()=>{t=root.dataset.theme==="light"?"dark":"light";apply(t);try{localStorage.setItem("theme",t);}catch(_){}};
+})();
+
+/* Enter يشغّل الزر */
+[["convIn","convGo"],["ageIn","ageGo"],["diffB","diffGo"],["diffA","diffGo"]].forEach(([i,g])=>
+  $(i).addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$(g).click();}}));
+
+try{const t=localStorage.getItem("tab");if(t&&t!=="conv")document.querySelector(`.tabs button[data-tab="${t}"]`).click();}catch(_){}
+</script>
+</body>
+</html>
