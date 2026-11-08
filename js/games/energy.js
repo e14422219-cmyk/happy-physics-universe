@@ -351,7 +351,7 @@ class EnergyGame {
     const y = p ? p.y : GROUND;
     ctx.fillStyle = 'rgba(46,211,160,.25)'; ctx.fillRect(x1, y - 70, x2 - x1, 66);
     ctx.fillStyle = '#2ed3a0'; ctx.fillRect(x1, y - 76, x2 - x1, 8);
-    label(ctx, T(`STATION ≤ ${this.lv.vmax} m/s`, `المحطة ≤ ${this.lv.vmax} م/ث`), (x1 + x2) / 2, y - 92, { size: 14 });
+    label(ctx, T(`STATION ≤ ${this.lv.vmax} m/s`, `المحطة: أقصى سرعة ${this.lv.vmax} م/ث`), (x1 + x2) / 2, y - 92, { size: 16 });
   }
 
   drawCart(ctx) {

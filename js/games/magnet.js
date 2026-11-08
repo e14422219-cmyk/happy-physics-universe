@@ -552,28 +552,31 @@ class MagnetGame {
 
   drawGate(ctx) {
     const g = this.lv.goal;
-    const x = 850, y = 120;
-    ctx.fillStyle = '#3a4070'; roundRect(ctx, x - 70, y - 50, 140, 100, 14); ctx.fill();
+    const x = 840, y = 168;
+    ctx.fillStyle = '#3a4070'; roundRect(ctx, x - 100, y - 56, 200, 124, 16); ctx.fill();
     g.seq.forEach((s, i) => {
-      const cx = x - 40 + i * 40;
+      const cx = x - 58 + i * 58;
       ctx.fillStyle = i < this.seqIdx ? '#2ed3a0' : '#1a1d33';
-      ctx.beginPath(); ctx.arc(cx, y, 16, 0, 7); ctx.fill();
-      label(ctx, s > 0 ? '→' : '←', cx, y, { size: 20, color: '#fff', stroke: null });
+      ctx.beginPath(); ctx.arc(cx, y - 6, 24, 0, 7); ctx.fill();
+      label(ctx, s > 0 ? '→' : '←', cx, y - 6, { size: 30, color: '#fff', stroke: null });
     });
-    label(ctx, T('needle code', 'شيفرة المؤشر'), x, y + 34, { size: 12, color: '#c8cdf0', stroke: null });
+    label(ctx, T('needle code', 'شيفرة المؤشر'), x, y + 44, { size: 20, color: '#e0e4ff', stroke: null });
   }
 
   drawGoal(ctx) {
     const g = this.lv.goal;
     let text = '';
-    if (g.type === 'peak') text = T(`Goal: |ε| ≥ ${g.v} V`, `الهدف: |ε| ≥ ${g.v} فولت`);
+    if (g.type === 'peak') text = T(`Goal: |ε| ≥ ${g.v} V`, `الهدف: قوة دافعة ${g.v} فولت أو أكثر`);
     if (g.type === 'seq') text = T('Goal: match the needle code', 'الهدف: طابق شيفرة المؤشر');
     if (g.type === 'energy') text = T(`Goal: ${g.joules} J  •  ⏱ ${Math.max(0, Math.ceil(g.time - this.playTime))} s`, `الهدف: ${g.joules} جول  •  ⏱ ${Math.max(0, Math.ceil(g.time - this.playTime))} ث`);
-    if (g.type === 'band') text = T(`Goal: ${g.lo} V ≤ ε_max ≤ ${g.hi} V for ${g.hold} s`, `الهدف: ${g.lo} ≤ ε_max ≤ ${g.hi} فولت لمدة ${g.hold} ث`);
-    ctx.fillStyle = 'rgba(0,0,0,.35)'; roundRect(ctx, 14, 14, 360, 52, 12); ctx.fill();
-    label(ctx, text, 194, 32, { size: 15, stroke: null });
-    ctx.fillStyle = '#1a1d33'; roundRect(ctx, 30, 46, 328, 10, 5); ctx.fill();
-    ctx.fillStyle = '#2ed3a0'; roundRect(ctx, 30, 46, 328 * clamp(this.goalProg, 0, 1), 10, 5); ctx.fill();
+    // Arabic uses words instead of ≤ signs: canvas text reorders inequalities inside right-to-left sentences
+    if (g.type === 'band') text = T(`Goal: ${g.lo} V ≤ ε_max ≤ ${g.hi} V for ${g.hold} s`, `الهدف: ε_max بين ${g.lo} و ${g.hi} فولت لمدة ${g.hold} ث`);
+    ctx.fillStyle = 'rgba(0,0,0,.45)'; roundRect(ctx, 14, 12, 470, 74, 14); ctx.fill();
+    ctx.font = `800 24px 'Baloo Bhaijaan 2', sans-serif`;
+    const size = Math.min(24, 24 * 440 / Math.max(1, ctx.measureText(text).width));   // shrink only if it would overflow the box
+    label(ctx, text, 249, 38, { size, color: '#ffe066', stroke: null });
+    ctx.fillStyle = '#1a1d33'; roundRect(ctx, 32, 62, 434, 14, 7); ctx.fill();
+    ctx.fillStyle = '#2ed3a0'; roundRect(ctx, 32, 62, 434 * clamp(this.goalProg, 0, 1), 14, 7); ctx.fill();
   }
 
   drawGen(ctx) {
