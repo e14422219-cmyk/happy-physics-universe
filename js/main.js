@@ -225,6 +225,7 @@ function startLevel(id, levelIndex, attempt) {
   $('#g-vars').innerHTML = '';
   $('#g-hint').textContent = '';
   $('#g-banner').className = 'stage-banner';
+  $('#g-card').hidden = true;
   session = { id, levelIndex, attempt, ended: false, varsAt: 0 };
   const api = makeApi(session);
   stage.start(mod.create(api, levelIndex));
@@ -259,6 +260,16 @@ function makeApi(s) {
       clearTimeout(bannerTimer);
       bannerTimer = setTimeout(() => { b.className = 'stage-banner' + (bad ? ' bad' : ''); }, ms);
     },
+    // Card in the middle of the stage with worked equations. lines: [{ text, kind: 'bad' | 'good' }]
+    card({ title, lines = [], hint = '', good = false }) {
+      const c = $('#g-card');
+      c.className = 'stage-card' + (good ? ' good' : '');
+      c.innerHTML = `<h4>${esc(title)}</h4>${lines.map(l => `<div class="eq ${l.kind || ''}">${esc(l.text)}</div>`).join('')}` +
+        (hint ? `<p class="hint">💡 ${esc(hint)}</p>` : '') + `<div class="close-note">${esc(T('Tap to close', 'اضغط للإغلاق'))}</div>`;
+      c.hidden = false;
+      c.onclick = () => { c.hidden = true; };
+    },
+    hideCard() { $('#g-card').hidden = true; },
     slider({ label, min, max, step, value, unit = '', digits = 1, onInput }) {
       const row = document.createElement('div');
       row.className = 'ctl-row';

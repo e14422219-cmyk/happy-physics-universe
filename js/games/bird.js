@@ -160,6 +160,8 @@ class BirdGame {
       t: 0, touched: false, rest: 0, firstHit: null, rot: -a, squash: 0
     };
     this.recoil = 1;
+    this.shotPops = 0;
+    this.api.hideCard();
     this.trail = [];
     this.apex = null;
     this.birdsLeft--;
@@ -172,7 +174,7 @@ class BirdGame {
   // ---------- input ----------
   down(p) {
     if (this.state !== 'aim' || this.hop < 1) return;
-    if (Math.hypot(p.x - ANCHOR.x, p.y - ANCHOR.y) < 140) { this.drag = true; this.aimAt(p); }
+    if (Math.hypot(p.x - ANCHOR.x, p.y - ANCHOR.y) < 140) { this.drag = true; this.api.hideCard(); this.aimAt(p); }
   }
   move(p) { if (this.drag) this.aimAt(p); }
   up() {
@@ -249,7 +251,10 @@ class BirdGame {
     } else {
       b.rot = -Math.atan2(b.vy, b.vx);
     }
-    if (b.rest > .35 || b.t > 16 || b.x > W + 40 || b.x < -40 || b.y > 700) this.endShot();
+    if (b.rest > .35 || b.t > 16 || b.x > W + 40 || b.x < -40 || b.y > 700) {
+      if (!this.shotPops) this.explainMiss(b);
+      this.endShot();
+    }
   }
 
   collide(b, r) {
@@ -269,7 +274,7 @@ class BirdGame {
     b.y += ny * (BR - d);
     if (vn >= 0) return;
     const impact = -vn;
-    if (!b.touched) { b.touched = true; b.firstHit = { t: b.t, x: b.x }; }
+    if (!b.touched) { b.touched = true; b.firstHit = { t: b.t, x: b.x, type: r.type }; }
     if (impact > 2) b.squash = Math.max(b.squash, Math.min(1, impact / 12));
     if (BREAK[r.type] && impact > BREAK[r.type]) {
       this.breakBlock(r);
@@ -296,9 +301,48 @@ class BirdGame {
     if (!t.alive) return;
     t.alive = false;
     t.falling = false;
+    if (this.state === 'fly') this.shotPops = (this.shotPops || 0) + 1;
     this.api.sfx('pop');
     this.fx.emit(t.x, t.y, 22, { color: ['#7a4fd1', '#c9a3ff', '#ffd23f'], speed: 300, size: 5 });
     if (this.targets.every(x => !x.alive) && this.state !== 'fly') this.checkEnd();
+  }
+
+  // A shot that hit nothing: show the projectile equations with the player's own numbers
+  // in the middle of the stage, and where the result differs from the target.
+  explainMiss(b) {
+    const alive = this.targets.filter(t => t.alive);
+    if (!alive.length) return;
+    const hit = b.firstHit || { t: b.t, x: b.x, type: 'none' };
+    const xLand = (hit.x - ANCHOR.x) / PPM;
+    const dist = t => Math.abs((t.x - ANCHOR.x) / PPM - xLand);
+    const tgt = alive.reduce((m, t) => dist(t) < dist(m) ? t : m);
+    const xT = (tgt.x - ANCHOR.x) / PPM, diff = xLand - xT;
+    const a = rad(this.theta), g = this.g;
+    const vx = this.v0 * Math.cos(a), vy = this.v0 * Math.sin(a);
+    const flewOff = !b.firstHit;
+    let hint;
+    if (hit.type === 'stone' || hit.type === 'wood' || hit.type === 'glass') {
+      hint = T('The bird hit an obstacle before the target. Raise the angle θ for a higher path, or lower it to pass underneath.',
+        'اصطدم الطائر بعائق قبل الهدف. ارفع الزاوية θ ليعلو المسار، أو اخفضها ليمر من تحته.');
+    } else if (diff < 0) {
+      hint = T(`It landed ${fmt(-diff, 1)} m short. Increase v₀, or bring θ closer to 45°.`,
+        `سقط قبل الهدف بـ ${fmt(-diff, 1)} م. زِد السرعة v₀ أو قرّب الزاوية θ من 45°.`);
+    } else {
+      hint = T(`It went ${fmt(diff, 1)} m too far. Decrease v₀, or move θ away from 45°.`,
+        `تجاوز الهدف بـ ${fmt(diff, 1)} م. قلّل السرعة v₀ أو أبعد الزاوية θ عن 45°.`);
+    }
+    this.api.card({
+      title: T('Missed! Here is the math with your numbers', 'أخطأت الهدف! هذه المعادلة بأرقامك'),
+      lines: [
+        { text: `v₀ = ${fmt(this.v0, 1)} m/s    θ = ${this.theta}°    g = ${g} m/s²` },
+        { text: `vₓ = v₀·cosθ = ${fmt(this.v0, 1)} × cos${this.theta}° = ${fmt(vx, 2)} m/s` },
+        { text: `vᵧ = v₀·sinθ = ${fmt(this.v0, 1)} × sin${this.theta}° = ${fmt(vy, 2)} m/s` },
+        { text: `y = y₀ + vᵧ·t − ½·g·t²  ⇒  t = ${fmt(hit.t, 2)} s` },
+        { text: `x = vₓ·t = ${fmt(vx, 2)} × ${fmt(hit.t, 2)} = ${fmt(vx * hit.t, 1)} m`, kind: 'bad' },
+        { text: `x(target) = ${fmt(xT, 1)} m    Δx = ${diff > 0 ? '+' : ''}${fmt(diff, 1)} m`, kind: 'bad' }
+      ],
+      hint: (flewOff ? T('The bird left the screen. ', 'خرج الطائر من الشاشة. ') : '') + hint
+    });
   }
 
   endShot() {

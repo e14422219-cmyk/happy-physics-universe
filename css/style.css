@@ -181,6 +181,25 @@ button { font-family: inherit; }
 .stage-banner.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 .stage-banner.bad { background: var(--coral); color: #fff; box-shadow: 0 6px 0 var(--coral-dark); }
 
+/* worked-equation card shown in the middle of the stage (e.g. why a shot missed) */
+.stage-card {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(92%, 520px); max-height: 90%; overflow-y: auto;
+  background: rgba(255,255,255,.97); color: var(--ink); border-radius: 18px; padding: 12px 16px 10px;
+  box-shadow: 0 14px 40px rgba(20,10,60,.4); border-top: 6px solid var(--coral); animation: pop .3s cubic-bezier(.2,1.5,.4,1);
+  cursor: pointer; z-index: 3;
+}
+.stage-card.good { border-top-color: var(--mint); }
+.stage-card h4 { margin: 0 0 6px; font-size: 1.1rem; }
+.stage-card .eq {
+  direction: ltr; text-align: left; font-family: 'Cambria Math', 'Times New Roman', serif; font-weight: 700;
+  font-size: clamp(.82rem, 2.2vw, 1.05rem); background: #f6f3ff; border-radius: 10px; padding: 4px 10px; margin: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+.stage-card .eq.bad { background: #ffeaea; color: #b3261e; }
+.stage-card .eq.good { background: #e3fbf2; color: #0b6b4f; }
+.stage-card .hint { margin: 6px 0 2px; font-weight: 700; color: var(--ink-soft); font-size: .92rem; }
+.stage-card .close-note { font-size: .75rem; color: var(--ink-soft); text-align: center; margin-top: 4px; }
+
 .sci-panel {
   width: 320px; flex: 0 0 320px; overflow-y: auto; background: var(--paper); border-radius: 18px;
   padding: 12px 14px; box-shadow: var(--shadow);

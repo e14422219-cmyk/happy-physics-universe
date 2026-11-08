@@ -6,8 +6,14 @@ import { drawRobot } from '../art.js';
 
 const RAIL_Y = 230;
 const COIL = { x: 560, len: 170, r: 70 };
-const LCH = 90;                   // field fall-off length (px = mm)
+const MAG_LEN = 200;              // longer than the coil, so only the facing pole can be inside it
+const TURNS = 12;                 // loops sampled along the coil when averaging the flux
 const AREA = Math.PI * 0.07 ** 2; // coil cross-section (m²)
+const MX_MIN = 70 + MAG_LEN / 2;
+const MX_MAX = COIL.x + COIL.len / 2 - 6 - MAG_LEN / 2;        // facing pole stops at the far end of the coil
+const ROTATE_MAX = COIL.x - COIL.len / 2 - 30 - MAG_LEN / 2;   // magnet must be clear of the coil to turn
+// Solid-angle flux of one magnetic pole through a loop, as a fraction: u(d) = d / √(d² + R²)
+const u = d => d / Math.hypot(d, COIL.r);
 const R_LOAD = 10;                // bulb / battery resistance (Ω)
 
 const LEVELS = [
@@ -36,11 +42,11 @@ const LEVELS = [
     }
   },
   {
-    name: { en: "Lenz's Lock", ar: 'قفل لنز' }, mode: 'slide', N: 200, B: 0.4, par: 25, flip: true,
-    goal: { type: 'seq', seq: [1, 1, -1], v: 5 },
+    name: { en: "Lenz's Lock", ar: 'قفل لنز' }, mode: 'slide', N: 200, B: 0.4, par: 30,
+    goal: { type: 'seq', seq: [1, -1, -1], v: 4 },
     learn: {
-      en: "Lenz's law: the induced current always opposes the change that caused it. Flipping the magnet (N ↔ S) reverses the direction of the induced current.",
-      ar: 'قانون لنز: التيار الحثي يقاوم دائمًا التغير المسبب له. قلب المغناطيس (N ↔ S) يعكس اتجاه التيار الحثي.'
+      en: "Lenz's law: the induced current always opposes the change that caused it. Pushing in the S pole gives the opposite current to pushing in the N pole, so the pole you choose decides the direction.",
+      ar: 'قانون لنز: التيار الحثي يقاوم دائمًا التغير المسبب له. إدخال القطب الجنوبي S يعطي تيارًا معاكسًا لإدخال القطب الشمالي N، فالقطب الذي تختاره يحدد الاتجاه.'
     }
   },
   {
@@ -113,37 +119,54 @@ class MagnetGame {
 
   // ================= sliding magnet =================
   initSlide(api) {
-    this.mx = 200; this.mv = 0;
-    this.pol = 1; this.flipT = 1; this.flipFrom = 1;
+    this.mx = 220; this.mv = 0;
+    this.rot = 0; this.rotTarget = 0;   // 0: N pole faces the coil, π: S pole faces the coil
     this.phi = this.flux();
     this.drag = null;
     if (this.lv.adjustable) {
       api.slider({ label: T('Number of turns N', 'عدد اللفات N'), min: 50, max: 400, step: 50, value: this.N, digits: 0, onInput: v => { this.N = v; } });
       api.slider({ label: T('Magnet strength B', 'شدة المغناطيس B'), min: .1, max: .5, step: .05, value: this.B, unit: 'T', digits: 2, onInput: v => { this.B = v; } });
     }
-    if (this.lv.flip) api.buttons([{ label: T('🔄 Flip magnet (F)', '🔄 اقلب المغناطيس (F)'), cls: 'mint', onClick: () => this.flip() }]);
-    api.note(T('Drag the magnet left/right (keys ← →). The galvanometer needle shows the induced emf.', 'اسحب المغناطيس يمينًا ويسارًا (المفاتيح ← →). مؤشر الجلفانومتر يبيّن القوة الدافعة الحثية.'));
+    this.poleSeg = api.seg({
+      label: T('Pole facing the coil', 'القطب المواجه للملف'),
+      options: [{ label: T('N (north)', 'N (شمالي)'), value: 'N' }, { label: T('S (south)', 'S (جنوبي)'), value: 'S' }],
+      value: 'N',
+      onChange: v => { if (v !== this.facing) this.flip(); else this.poleSeg.set(this.facing); }
+    });
+    api.note(T('Drag the magnet toward the coil (keys ← →). Tap the magnet, the buttons above or F to turn it so the other pole faces the coil. Only the facing pole can enter.',
+      'اسحب المغناطيس نحو الملف (المفاتيح ← →). اضغط على المغناطيس أو الأزرار أعلاه أو F لتدويره فيواجه الملفَ القطبُ الآخر. القطب المواجه وحده يدخل الملف.'));
     const g = this.lv.goal;
     if (g.type === 'peak') api.hint(T(`Move the magnet fast through the coil to reach ${g.v} V!`, `حرّك المغناطيس بسرعة عبر الملف لتصل إلى ${g.v} فولت!`));
     if (g.type === 'seq') api.hint(T('Make the needle swing in the order shown on the gate.', 'اجعل المؤشر يتحرك بالترتيب الظاهر على البوابة.'));
     if (g.type === 'energy') api.hint(T(`Store ${g.joules} J in ${g.time} s — tune N and B, then move fast!`, `خزّن ${g.joules} جول خلال ${g.time} ثانية — اضبط N وB ثم تحرّك بسرعة!`));
   }
 
-  polarity() {
-    if (this.flipT >= 1) return this.pol;
-    return this.flipFrom * Math.cos(Math.PI * this.flipT);
-  }
+  get facing() { return Math.round(this.rotTarget / Math.PI) % 2 === 0 ? 'N' : 'S'; }
+  get rotating() { return Math.abs(this.rot - this.rotTarget) > 1e-3; }
 
+  // Flux per turn, averaged over the coil: each pole acts like a point source, so
+  // Φ = (q/2)·[u(x − x_S) − u(x − x_N)] summed over the turns, with q = 2·B·A.
   flux() {
-    const d = (this.mx - COIL.x) / LCH;
-    return this.B * AREA * this.polarity() / Math.pow(1 + d * d, 1.5);
+    const c = Math.cos(this.rot) * MAG_LEN / 2;
+    const pN = this.mx + c, pS = this.mx - c;
+    let sum = 0;
+    for (let i = 0; i < TURNS; i++) {
+      const x = COIL.x - COIL.len / 2 + (i + .5) * COIL.len / TURNS;
+      sum += u(x - pS) - u(x - pN);
+    }
+    return this.B * AREA * sum / TURNS;
   }
 
   flip() {
-    if (this.flipT < 1 || this.done) return;
-    this.flipFrom = this.pol;
-    this.pol = -this.pol;
-    this.flipT = 0;
+    if (this.done || this.rotating) return;
+    if (this.mx > ROTATE_MAX + .5) {
+      this.api.banner(T('Pull the magnet out of the coil first, then turn it', 'اسحب المغناطيس خارج الملف أولًا ثم دوّره'), true, 1600);
+      this.api.sfx('bad');
+      this.poleSeg?.set(this.facing);
+      return;
+    }
+    this.rotTarget += Math.PI;
+    this.poleSeg?.set(this.facing);
     this.api.sfx('click');
   }
 
@@ -168,14 +191,17 @@ class MagnetGame {
   down(p) {
     if (this.done) return;
     if (this.lv.mode === 'slide') {
-      if (Math.abs(p.x - this.mx) < 80 && Math.abs(p.y - RAIL_Y) < 50) this.drag = { off: p.x - this.mx };
+      if (Math.abs(p.x - this.mx) < MAG_LEN / 2 + 10 && Math.abs(p.y - RAIL_Y) < 60) this.drag = { off: p.x - this.mx, sx: p.x, sy: p.y, moved: false };
     } else {
       const w = this.wheel;
       if (Math.hypot(p.x - w.x, p.y - w.y) < w.r + 30) this.dragGen = { a: Math.atan2(p.y - w.y, p.x - w.x), t: this.time };
     }
   }
   move(p) {
-    if (this.drag) this.target = clamp(p.x - this.drag.off, 90, 910);
+    if (this.drag) {
+      if (Math.hypot(p.x - this.drag.sx, p.y - this.drag.sy) > 6) this.drag.moved = true;
+      if (this.drag.moved && !this.rotating) this.target = clamp(p.x - this.drag.off, MX_MIN, MX_MAX);
+    }
     if (this.dragGen) {
       const w = this.wheel;
       const a = Math.atan2(p.y - w.y, p.x - w.x);
@@ -186,13 +212,16 @@ class MagnetGame {
       this.crankDelta = (this.crankDelta || 0) + da;
     }
   }
-  up() { this.drag = null; this.dragGen = null; this.target = undefined; }
+  up() {
+    if (this.drag && !this.drag.moved) this.flip();   // a tap on the magnet turns it around
+    this.drag = null; this.dragGen = null; this.target = undefined;
+  }
   key(e) {
     if (this.done) return false;
     if (this.lv.mode === 'slide') {
-      if (e.key === 'ArrowLeft') { this.target = clamp(this.mx - 40, 90, 910); return true; }
-      if (e.key === 'ArrowRight') { this.target = clamp(this.mx + 40, 90, 910); return true; }
-      if ((e.key === 'f' || e.key === 'F') && this.lv.flip) { this.flip(); return true; }
+      if (e.key === 'ArrowLeft') { this.target = clamp(this.mx - 40, MX_MIN, MX_MAX); return true; }
+      if (e.key === 'ArrowRight') { this.target = clamp(this.mx + 40, MX_MIN, MX_MAX); return true; }
+      if (e.key === 'f' || e.key === 'F') { this.flip(); return true; }
     } else {
       if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { this.turbine = clamp(this.turbine + .5, 0, 30); this.sW.set(this.turbine); return true; }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { this.turbine = clamp(this.turbine - .5, 0, 30); this.sW.set(this.turbine); return true; }
@@ -222,7 +251,11 @@ class MagnetGame {
       this.mx += (this.target - this.mx) * k;
       if (!this.drag && Math.abs(this.target - this.mx) < .5) this.target = undefined;
     }
-    if (this.flipT < 1) this.flipT = Math.min(1, this.flipT + dt / .35);
+    this.rotCool = this.rotating ? .35 : Math.max(0, (this.rotCool || 0) - dt);
+    if (this.rotating) {
+      const step = Math.PI / .45 * dt;
+      this.rot = Math.abs(this.rotTarget - this.rot) <= step ? this.rotTarget : this.rot + Math.sign(this.rotTarget - this.rot) * step;
+    }
     this.mv = this.mv * .7 + ((this.mx - prevX) / dt) * .3;
     const phi = this.flux();
     const raw = -this.N * (phi - this.phi) / dt;
@@ -251,6 +284,7 @@ class MagnetGame {
 
   detectPulse(g) {
     const e = this.emf;
+    if (this.rotating || this.rotCool > 0) { this.pulse = null; return; }   // turning the magnet is not part of the code
     if (!this.pulse) {
       if (Math.abs(e) > g.v) this.pulse = { sign: Math.sign(e) };
       return;
@@ -395,27 +429,27 @@ class MagnetGame {
   }
 
   drawField(ctx) {
-    const s = this.polarity();
-    ctx.strokeStyle = s >= 0 ? 'rgba(255,93,143,.25)' : 'rgba(77,124,255,.3)';
+    ctx.strokeStyle = Math.cos(this.rot) >= 0 ? 'rgba(255,93,143,.25)' : 'rgba(77,124,255,.3)';
     ctx.lineWidth = 2;
-    for (let k = 1; k <= 3; k++) { ctx.beginPath(); ctx.ellipse(this.mx, RAIL_Y, 70 + k * 35, 18 + k * 22, 0, 0, 7); ctx.stroke(); }
+    for (let k = 1; k <= 3; k++) { ctx.beginPath(); ctx.ellipse(this.mx, RAIL_Y, 100 + k * 30, 18 + k * 22, this.rot, 0, 7); ctx.stroke(); }
   }
 
+  // Bar magnet turned by this.rot: the red N half points along +x at rot = 0.
   drawMagnet(ctx) {
-    const s = this.polarity();
-    const w = 130, h = 44, x = this.mx;
+    const w = MAG_LEN, h = 44, x = this.mx;
     ctx.save();
     ctx.translate(x, RAIL_Y);
-    ctx.scale(s >= 0 ? Math.max(.05, Math.abs(s)) : -Math.max(.05, Math.abs(s)), 1);
+    ctx.rotate(this.rot);
     ctx.fillStyle = '#4d7cff'; roundRect(ctx, -w / 2, -h / 2, w / 2, h, 8); ctx.fill();
     ctx.fillStyle = '#ff4d6d'; roundRect(ctx, 0, -h / 2, w / 2, h, 8); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(-w / 2 + 6, -h / 2 + 5, w - 12, 5);
     ctx.restore();
-    const right = s >= 0 ? 'N' : 'S', left = s >= 0 ? 'S' : 'N';
-    if (Math.abs(s) > .3) {
-      label(ctx, left, x - w / 4, RAIL_Y, { size: 20, color: '#fff', stroke: null });
-      label(ctx, right, x + w / 4, RAIL_Y, { size: 20, color: '#fff', stroke: null });
+    const cx = Math.cos(this.rot) * w / 4, cy = Math.sin(this.rot) * w / 4;
+    label(ctx, 'N', x + cx, RAIL_Y + cy, { size: 22, color: '#fff', stroke: null });
+    label(ctx, 'S', x - cx, RAIL_Y - cy, { size: 22, color: '#fff', stroke: null });
+    if (!this.rotating) {
+      label(ctx, T(`facing the coil: ${this.facing}`, `القطب المواجه للملف: ${this.facing}`), x, RAIL_Y - 52, { size: 15, color: this.facing === 'N' ? '#ff8fa3' : '#8fb0ff' });
     }
-    ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x - w / 2 + 6, RAIL_Y - h / 2 + 5, w - 12, 5);
   }
 
   drawWire(ctx, pts) {
@@ -614,7 +648,8 @@ export default {
   tutorial: [
     { en: 'Drag the bar magnet along the rail into and out of the copper coil.', ar: 'اسحب المغناطيس على السكة لإدخاله في الملف النحاسي وإخراجه منه.' },
     { en: 'The galvanometer needle and the oscilloscope show the induced emf ε. Faster motion = bigger ε.', ar: 'مؤشر الجلفانومتر وراسم الذبذبات يبيّنان القوة الدافعة الحثية ε. حركة أسرع = ε أكبر.' },
-    { en: 'Pushing in and pulling out swing the needle in opposite directions. Flipping the magnet reverses it too.', ar: 'الإدخال والإخراج يحرّكان المؤشر في اتجاهين متعاكسين، وقلب المغناطيس يعكسه أيضًا.' },
+    { en: 'Tap the magnet (or use the N / S buttons) to turn it and choose which pole faces the coil. Only that pole can enter the coil.', ar: 'اضغط على المغناطيس (أو زرّي N / S) لتدويره واختيار القطب المواجه للملف. هذا القطب وحده يدخل الملف.' },
+    { en: 'Pushing in and pulling out swing the needle in opposite directions, and the S pole gives the opposite swing to the N pole.', ar: 'الإدخال والإخراج يحرّكان المؤشر في اتجاهين متعاكسين، والقطب S يعطي عكس ما يعطيه القطب N.' },
     { en: 'In the generator level, spin the crank wheel (or use the turbine slider) to control ω.', ar: 'في مرحلة المولّد، أدر عجلة الذراع (أو استخدم منزلق التوربين) للتحكم في ω.' },
     { en: 'Finish quickly for 3 stars!', ar: 'أنهِ بسرعة لتحصل على 3 نجوم!' }
   ],
