@@ -1,5 +1,5 @@
-import { GAMES, ACHIEVEMENTS, CRYSTAL_COLORS } from './config.js';
-import { store, levelStars, setLevelStars, gameStars, totalStars, levelsCleared, isUnlocked, isGameComplete } from './store.js';
+import { GAMES, ACHIEVEMENTS, CRYSTAL_COLORS, LOCK_LEVELS } from './config.js';
+import { store, levelStars, setLevelStars, gameStars, totalStars, levelsCleared, isUnlocked as inOrder, isGameComplete } from './store.js';
 import { t, T, L, getLang, setLang, applyDir } from './i18n.js';
 import { gameArt, crystalSVG, owlSVG, logoSVG } from './art.js';
 import { Stage } from './engine.js';
@@ -12,6 +12,7 @@ import circuit from './games/circuit.js';
 import light from './games/light.js';
 import energy from './games/energy.js';
 
+const isUnlocked = (id, i) => !LOCK_LEVELS || inOrder(id, i);
 const MODULES = { bird, water, magnet, circuit, light, energy };
 const $ = sel => document.querySelector(sel);
 const meta = id => GAMES.find(g => g.id === id);

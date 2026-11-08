@@ -2,6 +2,10 @@
 // Change text here without touching game code. Grade labels are intentionally
 // generic — adjust them to match your own curriculum.
 
+// false: every level is open from the start (handy in class).
+// true: a level opens only after the one before it is completed.
+export const LOCK_LEVELS = false;
+
 export const GAMES = [
   {
     id: 'bird',

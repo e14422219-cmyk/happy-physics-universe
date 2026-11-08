@@ -331,18 +331,78 @@ class BirdGame {
       hint = T(`It went ${fmt(diff, 1)} m too far. Decrease v₀, or move θ away from 45°.`,
         `تجاوز الهدف بـ ${fmt(diff, 1)} م. قلّل السرعة v₀ أو أبعد الزاوية θ عن 45°.`);
     }
+    const fix = this.correctShot(tgt);
     this.api.card({
-      title: T('Missed! Here is the math with your numbers', 'أخطأت الهدف! هذه المعادلة بأرقامك'),
+      title: T('Missed! Your numbers, then the correct ones', 'أخطأت الهدف! معادلتك بأرقامك، ثم المعادلة الصحيحة'),
       lines: [
+        { text: T('✖ Your shot', '✖ رميتك'), kind: 'head bad' },
         { text: `v₀ = ${fmt(this.v0, 1)} m/s    θ = ${this.theta}°    g = ${g} m/s²` },
         { text: `vₓ = v₀·cosθ = ${fmt(this.v0, 1)} × cos${this.theta}° = ${fmt(vx, 2)} m/s` },
         { text: `vᵧ = v₀·sinθ = ${fmt(this.v0, 1)} × sin${this.theta}° = ${fmt(vy, 2)} m/s` },
         { text: `y = y₀ + vᵧ·t − ½·g·t²  ⇒  t = ${fmt(hit.t, 2)} s` },
         { text: `x = vₓ·t = ${fmt(vx, 2)} × ${fmt(hit.t, 2)} = ${fmt(vx * hit.t, 1)} m`, kind: 'bad' },
-        { text: `x(target) = ${fmt(xT, 1)} m    Δx = ${diff > 0 ? '+' : ''}${fmt(diff, 1)} m`, kind: 'bad' }
+        { text: `x(target) = ${fmt(xT, 1)} m    Δx = ${diff > 0 ? '+' : ''}${fmt(diff, 1)} m`, kind: 'bad' },
+        ...fix.lines
       ],
-      hint: (flewOff ? T('The bird left the screen. ', 'خرج الطائر من الشاشة. ') : '') + hint
+      hint: (flewOff ? T('The bird left the screen. ', 'خرج الطائر من الشاشة. ') : '') + hint + ' ' + fix.hint
     });
+  }
+
+  // v₀ that sends the bird through (x, y) at angle θ: y = y₀ + x·tanθ − g·x² / (2·v₀²·cos²θ)
+  speedFor(th, x, y) {
+    const a = rad(th), c = Math.cos(a);
+    const den = 2 * c * c * (this.y0m + x * Math.tan(a) - y);
+    return den > 0 ? Math.sqrt(this.g * x * x / den) : NaN;
+  }
+
+  // Does a free flight at (v, θ) reach the target before touching a standing block?
+  pathClear(v, th, tgt) {
+    const a = rad(th), vx = v * Math.cos(a), vy = v * Math.sin(a), g = this.g;
+    for (let t = 0; t < 20; t += .005) {
+      const px = ANCHOR.x + vx * t * PPM, py = ANCHOR.y - (vy * t - .5 * g * t * t) * PPM;
+      if (Math.hypot(px - tgt.x, py - tgt.y) < tgt.r + BR - 4) return true;
+      if (py > GROUND || px > W + 50) return false;
+      for (const r of this.blocks) {
+        if (!r.alive) continue;
+        if (Math.hypot(px - clamp(px, r.x, r.x + r.w), py - clamp(py, r.y, r.y + r.h)) >= BR - 1) continue;
+        const speed = Math.hypot(vx, vy - g * t);
+        if (BREAK[r.type] && speed > BREAK[r.type] + 1) continue;   // glass / wood smash at this speed
+        return false;
+      }
+    }
+    return false;
+  }
+
+  // The correct shot for this target: keep the player's θ if a speed works, otherwise the nearest
+  // angle that does, checked against the blocks still standing.
+  correctShot(tgt) {
+    const g = this.g, y0 = this.y0m;
+    const x = (tgt.x - ANCHOR.x) / PPM, y = (GROUND - tgt.y) / PPM;
+    const angles = [this.theta, ...Array.from({ length: 84 }, (_, i) => i + 2).filter(th => th !== this.theta).sort((p, q) => Math.abs(p - this.theta) - Math.abs(q - this.theta))];
+    for (const th of angles) {
+      const v = Math.round(this.speedFor(th, x, y) * 10) / 10;
+      if (!(v >= 4 && v <= this.lv.vmax) || !this.pathClear(v, th, tgt)) continue;
+      const ar = rad(th), t = x / (v * Math.cos(ar));
+      const yAt = y0 + v * Math.sin(ar) * t - .5 * g * t * t;
+      const same = th === this.theta;
+      return {
+        lines: [
+          { text: T('✔ Correct equation', '✔ المعادلة الصحيحة'), kind: 'head good' },
+          { text: `v₀ = ${fmt(v, 1)} m/s    θ = ${th}°`, kind: 'good' },
+          { text: `v₀ = √( g·x² / (2·cos²θ·(y₀ + x·tanθ − y)) ) = √( ${g}·${fmt(x, 1)}² / (2·cos²${th}°·(${fmt(y0, 1)} + ${fmt(x, 1)}·tan${th}° − ${fmt(y, 1)})) ) = ${fmt(v, 1)} m/s`, kind: 'good' },
+          { text: `t = x / (v₀·cosθ) = ${fmt(x, 1)} / (${fmt(v, 1)} × cos${th}°) = ${fmt(t, 2)} s`, kind: 'good' },
+          { text: `y = ${fmt(y0, 1)} + ${fmt(v, 1)}·sin${th}°·${fmt(t, 2)} − ½·${g}·${fmt(t, 2)}² = ${fmt(yAt, 1)} m = y(target) ✔`, kind: 'good' }
+        ],
+        hint: same
+          ? T(`Correct: keep θ = ${th}° and use v₀ = ${fmt(v, 1)} m/s.`, `الصحيح: أبقِ θ = ${th}° واجعل v₀ = ${fmt(v, 1)} م/ث.`)
+          : T(`Correct: at θ = ${this.theta}° the path is blocked or out of range; use θ = ${th}° and v₀ = ${fmt(v, 1)} m/s.`,
+            `الصحيح: بزاوية ${this.theta}° المسار مسدود أو خارج المدى؛ استخدم θ = ${th}° و v₀ = ${fmt(v, 1)} م/ث.`)
+      };
+    }
+    return {
+      lines: [{ text: T('✔ No clear path to this target from here: try another target first.', '✔ لا يوجد مسار مفتوح لهذا الهدف الآن: جرّب هدفًا آخر أولًا.'), kind: 'head good' }],
+      hint: ''
+    };
   }
 
   endShot() {

@@ -197,6 +197,7 @@ button { font-family: inherit; }
 }
 .stage-card .eq.bad { background: #ffeaea; color: #b3261e; }
 .stage-card .eq.good { background: #e3fbf2; color: #0b6b4f; }
+.stage-card .eq.head { direction: inherit; text-align: start; font-family: var(--font); font-size: .95rem; background: none; padding: 6px 2px 0; }
 .stage-card .hint { margin: 6px 0 2px; font-weight: 700; color: var(--ink-soft); font-size: .92rem; }
 .stage-card .close-note { font-size: .75rem; color: var(--ink-soft); text-align: center; margin-top: 4px; }
 
