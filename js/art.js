@@ -59,11 +59,15 @@ const ART = {
     <rect x="30" y="20" width="90" height="70" fill="#d6ecff" opacity=".3" stroke="#e8e0ff" stroke-width="5"/>
     <rect x="33" y="40" width="84" height="47" fill="#2ec4f1"/>
     <rect x="200" y="20" width="90" height="70" fill="#d6ecff" opacity=".3" stroke="#e8e0ff" stroke-width="5"/>
-    <rect x="203" y="45" width="84" height="42" fill="#ff6b35"/><circle cx="230" cy="60" r="5" fill="#ffd23f"/><circle cx="260" cy="70" r="4" fill="#ffd23f"/>
+    <rect x="203" y="48" width="84" height="39" fill="#e39b12"/><rect x="203" y="48" width="84" height="3" fill="#ffd66b"/>
+    <path d="M220 60 q4 6 0 12 M262 58 q4 6 0 12" stroke="#ffd66b" stroke-width="2" fill="none" opacity=".7"/>
     <rect x="70" y="110" width="180" height="85" fill="#d6ecff" opacity=".3" stroke="#e8e0ff" stroke-width="5"/>
-    <rect x="73" y="150" width="174" height="42" fill="#2ec4f1" opacity=".8"/>
-    <rect x="45" y="88" width="60" height="6" rx="3" fill="#ffc93c"/><circle cx="110" cy="91" r="8" fill="none" stroke="#ffc93c" stroke-width="4"/>
-    <rect x="215" y="88" width="60" height="6" rx="3" fill="#ffc93c"/><circle cx="280" cy="91" r="8" fill="none" stroke="#ffc93c" stroke-width="4"/>
+    <rect x="73" y="150" width="174" height="42" fill="#2ec4f1" opacity=".85"/>
+    <rect x="70" y="88" width="20" height="10" fill="#cfc4f3"/><rect x="88" y="91" width="18" height="5" fill="#cfc4f3"/>
+    <g transform="translate(112 93)"><circle r="9" fill="none" stroke="#2ed3a0" stroke-width="3.5"/><path d="M-9 0H9M0-9V9" stroke="#2ed3a0" stroke-width="2.5"/></g>
+    <rect x="235" y="88" width="20" height="10" fill="#cfc4f3"/><rect x="214" y="91" width="22" height="5" fill="#cfc4f3"/>
+    <g transform="translate(208 93) rotate(45)"><circle r="9" fill="none" stroke="#e63946" stroke-width="3.5"/><path d="M-9 0H9M0-9V9" stroke="#e63946" stroke-width="2.5"/></g>
+    <path d="M80 98 V150" stroke="#2ec4f1" stroke-width="5"/>
     <rect x="125" y="142" width="70" height="10" rx="3" fill="#a66f38"/>
     <g transform="translate(160 118)"><circle r="14" fill="#ffd6a5"/><path d="M-12 -10 L-12 -24 L-6 -16 L0 -26 L6 -16 L12 -24 L12 -10Z" fill="#ffc93c"/><circle cx="-5" cy="-1" r="2.4" fill="#241a4f"/><circle cx="5" cy="-1" r="2.4" fill="#241a4f"/><path d="M-5 6 Q0 10 5 6" stroke="#241a4f" stroke-width="2" fill="none"/></g>
     <text x="96" y="186" font-size="16" font-weight="800" fill="#fff" font-family="serif">P = ρgh</text>
