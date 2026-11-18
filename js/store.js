@@ -14,7 +14,10 @@ function blank() {
     rated: false,       // the rating form was sent from this device
     ratePrompted: false,
     pending: [],        // ratings waiting to be sent (offline / database not set up yet)
-    settings: { lang: 'ar', sound: true }
+    pid: '',            // random anonymous id for play statistics and the heroes board
+    nick: null,         // { a, n } heroes board nickname (word indexes); null until the player joins
+    daily: {},          // { 'YYYY-MM-DD': true } daily challenges completed
+    settings: { lang: 'ar', sound: true, teacher: false, speed: 1 }
   };
 }
 
@@ -41,9 +44,11 @@ export const store = {
   },
 
   reset() {
-    const keep = { lang: this.settings.lang, profile: this.profile, rated: this.rated, pending: this.pending };
+    const keep = { lang: this.settings.lang, profile: this.profile, rated: this.rated, pending: this.pending, pid: this.pid, nick: this.nick };
     Object.assign(this, blank());
     this.settings.lang = keep.lang;
+    this.pid = keep.pid;
+    this.nick = keep.nick;
     this.profile = keep.profile;
     this.rated = keep.rated;
     this.pending = keep.pending;

@@ -4,211 +4,606 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
-  <title>لوحة التقييمات</title>
+  <meta name="theme-color" content="#070618">
+  <title>لوحة التحكم | كون الفيزياء السعيد</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700;800&family=Lalezar&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700;800&family=Lalezar&family=Aref+Ruqaa:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* Owner's private ratings board: summary first, then every rating. */
+    /* Owner's private control room: royal night blue with gold. */
     :root {
-      --bg: #0f0838; --bg2: #24106b; --card: rgba(255,255,255,.08); --line: rgba(255,255,255,.18);
-      --text: #f4efff; --soft: #c9bff0; --gold: #ffd36b; --mint: #3cf2b0; --pink: #ff4fd8; --coral: #ff7a93;
+      --bg: #070618; --bg2: #120c3a; --panel: rgba(255, 255, 255, .055); --panel-2: rgba(255, 255, 255, .09);
+      --line: rgba(255, 255, 255, .12); --line-gold: rgba(245, 201, 106, .35);
+      --text: #f6f1ff; --soft: #b9b0dc; --muted: #8a82b3;
+      --gold: #f5c96a; --gold-2: #ffe7a3; --gold-3: #c99a2e; --violet: #8c6bff; --aqua: #4fe3ff; --pink: #ff5fd2;
+      --good: #3ddc97; --bad: #ff6b81;
+      --r: 22px;
       color-scheme: dark;
     }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
-      margin: 0; min-height: 100vh; font: 600 15px/1.5 'Baloo Bhaijaan 2', system-ui, sans-serif; color: var(--text);
-      background: radial-gradient(50% 40% at 15% 10%, rgba(255,79,216,.3), transparent 70%), radial-gradient(50% 40% at 90% 90%, rgba(62,240,255,.22), transparent 70%), linear-gradient(180deg, var(--bg), var(--bg2));
+      margin: 0; min-height: 100vh; color: var(--text); font: 600 15px/1.55 'Baloo Bhaijaan 2', system-ui, sans-serif;
+      background:
+        radial-gradient(60% 45% at 85% -5%, rgba(140, 107, 255, .32), transparent 70%),
+        radial-gradient(45% 40% at 5% 15%, rgba(255, 95, 210, .16), transparent 70%),
+        radial-gradient(50% 50% at 50% 110%, rgba(79, 227, 255, .14), transparent 70%),
+        linear-gradient(180deg, var(--bg), var(--bg2) 60%, var(--bg));
       background-attachment: fixed;
     }
-    .wrap { max-width: 1150px; margin: 0 auto; padding-block: 22px 50px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-    h1 { font-family: 'Lalezar', sans-serif; font-weight: 400; font-size: clamp(1.8rem, 5vw, 2.6rem); margin: 0 0 4px;
-      background: linear-gradient(90deg, var(--gold), #ff9ad8, #3ef0ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .sub { color: var(--soft); margin: 0 0 18px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px 18px; backdrop-filter: blur(10px); }
-    .login { max-width: 440px; }
-    input, select {
-      font: inherit; font-weight: 700; color: #fff; background: rgba(0,0,0,.3); border: 2px solid var(--line); border-radius: 12px; padding: 9px 12px; outline: none;
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; opacity: .5;
+      background-image: radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 70% 20%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 40% 80%, var(--gold-2), transparent), radial-gradient(1px 1px at 85% 65%, #fff, transparent),
+        radial-gradient(1px 1px at 10% 70%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 50%, #fff, transparent);
+      background-size: 520px 520px;
     }
-    input:focus, select:focus { border-color: #3ef0ff; }
-    button {
-      font: inherit; font-weight: 800; border: 0; border-radius: 999px; padding: 9px 18px; cursor: pointer; color: #2a1600;
-      background: linear-gradient(180deg, #ffe08a, #f5a623); box-shadow: 0 4px 0 rgba(0,0,0,.25);
-    }
-    button.ghost { background: rgba(255,255,255,.12); color: #fff; box-shadow: none; border: 1px solid var(--line); }
-    button:focus-visible, input:focus-visible { outline: 3px solid #3ef0ff; outline-offset: 2px; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .err { color: #ffb3c1; min-height: 1.4em; margin-top: 8px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 16px 0; }
-    .kpi .n { font-family: 'Lalezar', sans-serif; font-size: 2.6rem; line-height: 1.1; color: var(--gold); font-variant-numeric: tabular-nums; }
-    .kpi .l { color: var(--soft); }
-    .bars { display: grid; gap: 8px; margin-top: 6px; }
-    .bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 2px 8px; align-items: center; font-size: .92rem; }
-    .bar-row > span { grid-column: 1 / -1; }
-    .bar { height: 10px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
-    .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold), var(--pink)); }
-    .bar-row b { text-align: end; font-variant-numeric: tabular-nums; }
-    h2 { font-family: 'Lalezar', sans-serif; font-weight: 400; font-size: 1.4rem; margin: 0 0 6px; }
-    .table-box { overflow-x: auto; margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; min-width: 1100px; }
-    th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: start; vertical-align: top; }
-    th { color: var(--soft); font-size: .85rem; position: sticky; top: 0; }
-    td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .stars { color: var(--gold); letter-spacing: 1px; white-space: nowrap; }
-    .comment { max-width: 280px; color: var(--soft); }
-    .empty { color: var(--soft); text-align: center; padding: 30px; }
-    .dev { white-space: nowrap; }
-    .dev small { display: block; color: var(--soft); font-size: .78rem; }
-    button.vis { padding: 4px 12px; font-size: .85rem; box-shadow: none; white-space: nowrap; }
-    button.vis.off { background: rgba(255,255,255,.12); color: var(--soft); border: 1px solid var(--line); }
-    tr.is-hidden td { opacity: .55; }
-    tr.is-hidden td:last-child { opacity: 1; }
+    .wrap { position: relative; max-width: 1240px; margin: 0 auto; padding-block: 18px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
     [hidden] { display: none !important; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+    .top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 18px; border-radius: var(--r);
+      background: linear-gradient(135deg, rgba(245, 201, 106, .12), rgba(140, 107, 255, .1)); border: 1px solid var(--line-gold);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .12); }
+    .crest { width: 54px; height: 54px; flex: none; filter: drop-shadow(0 6px 16px rgba(245, 201, 106, .45)); }
+    .titles h1 { margin: 0; font-family: 'Lalezar', sans-serif; font-weight: 400; font-size: clamp(1.5rem, 3.6vw, 2.2rem); line-height: 1.15;
+      background: linear-gradient(90deg, var(--gold-2), var(--gold), #ffb8e8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .titles p { margin: 0; color: var(--soft); font-size: .9rem; }
+    .top .spacer { flex: 1; }
+
+    .credit { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; }
+    .credit small { color: var(--muted); font-weight: 800; letter-spacing: .1em; font-size: .75rem; }
+    .sig { position: relative; padding: 0 10px 8px; }
+    .sig span { font-family: 'Aref Ruqaa', serif; font-weight: 700; font-size: 1.7rem; line-height: 1.6; display: inline-block; transform: rotate(-3deg);
+      background: linear-gradient(100deg, var(--gold-2), var(--gold) 40%, #fff6d8 50%, var(--gold) 60%, var(--gold-3)); background-size: 220% 100%;
+      -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine 6s linear infinite; filter: drop-shadow(0 2px 8px rgba(245, 201, 106, .4)); }
+    .sig svg { position: absolute; inset-inline: 0; bottom: 0; width: 100%; height: 18px; overflow: visible; }
+    .sig path { fill: none; stroke: var(--gold); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 420; stroke-dashoffset: 420; animation: draw 2s .3s ease-out forwards; }
+    .credit.big .sig span { font-size: 2.4rem; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes shine { to { background-position: -220% 0; } }
+
+    .login-box { max-width: 460px; margin: 12vh auto 0; text-align: center; padding: 34px 28px 26px; border-radius: 30px; position: relative;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .03)); border: 1px solid var(--line-gold);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, .5), 0 0 80px rgba(140, 107, 255, .18); backdrop-filter: blur(14px); }
+    .lock { width: 84px; height: 84px; margin: -76px auto 10px; border-radius: 50%; display: grid; place-items: center; font-size: 2.2rem;
+      background: radial-gradient(circle at 35% 30%, #fff3c9, var(--gold) 55%, var(--gold-3)); box-shadow: 0 0 0 6px rgba(7, 6, 24, .9), 0 0 40px rgba(245, 201, 106, .6); }
+    .login-box h1 { margin: 6px 0 2px; font-family: 'Lalezar', sans-serif; font-weight: 400; font-size: 2rem; color: var(--gold-2); }
+    .login-box p { color: var(--soft); margin: 0 0 18px; }
+    .login-row { display: flex; gap: 10px; }
+    .login-row input { flex: 1; min-width: 0; }
+    .login-foot { margin-top: 22px; }
+
+    input, select {
+      font: inherit; font-weight: 700; color: #fff; background: rgba(0, 0, 0, .35); border: 1.5px solid var(--line); border-radius: 14px; padding: 10px 14px; outline: none; min-height: 44px;
+    }
+    input:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245, 201, 106, .2); }
+    input[type="date"] { color-scheme: dark; padding-block: 8px; direction: ltr; }
+    button {
+      font: inherit; font-weight: 800; border: 0; border-radius: 999px; padding: 10px 20px; cursor: pointer; color: #2a1600; min-height: 44px;
+      background: linear-gradient(180deg, var(--gold-2), var(--gold) 60%, var(--gold-3)); box-shadow: 0 6px 18px rgba(245, 201, 106, .3), inset 0 1px 0 rgba(255, 255, 255, .6);
+      transition: transform .12s, filter .12s;
+    }
+    button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    button:disabled { opacity: .5; cursor: default; transform: none; }
+    button.ghost { background: rgba(255, 255, 255, .07); color: var(--text); box-shadow: none; border: 1px solid var(--line); }
+    button.ghost:hover { background: rgba(255, 255, 255, .12); }
+    button.danger { background: rgba(255, 107, 129, .14); color: #ffc2cc; border: 1px solid rgba(255, 107, 129, .45); box-shadow: none; }
+    button.danger.armed { background: var(--bad); color: #fff; }
+    button.mini { min-height: 34px; padding: 4px 12px; font-size: .85rem; }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--aqua); outline-offset: 2px; }
+    .err { color: #ffb3c1; min-height: 1.4em; margin-top: 10px; }
+
+    .tabs { position: sticky; top: 8px; z-index: 5; display: flex; gap: 6px; overflow-x: auto; margin: 16px 0; padding: 6px; border-radius: 999px;
+      background: rgba(10, 8, 34, .82); border: 1px solid var(--line); backdrop-filter: blur(12px); scrollbar-width: none; }
+    .tabs button { flex: none; background: transparent; color: var(--soft); box-shadow: none; padding: 8px 16px; min-height: 40px; }
+    .tabs button.on { background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: #2a1600; box-shadow: 0 4px 14px rgba(245, 201, 106, .35); }
+    .head-actions { display: flex; gap: 6px; }
+
+    .grid { display: grid; gap: 14px; }
+    .kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+    .two { grid-template-columns: 1.6fr 1fr; }
+    .three { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .card { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; backdrop-filter: blur(10px);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .06); min-width: 0; }
+    .card h2 { margin: 0 0 4px; font-family: 'Lalezar', sans-serif; font-weight: 400; font-size: 1.35rem; display: flex; align-items: center; gap: 8px; }
+    .card .hint { margin: 0 0 10px; color: var(--muted); font-size: .85rem; }
+    .kpi { overflow: hidden; }
+    .kpi::after { content: ''; position: absolute; inset: auto -30px -40px auto; width: 110px; height: 110px; border-radius: 50%; background: radial-gradient(rgba(245, 201, 106, .22), transparent 70%); pointer-events: none; }
+    .kpi .ic { font-size: 1.4rem; }
+    .kpi .n { font-family: 'Lalezar', sans-serif; font-size: 2.5rem; line-height: 1.05; color: var(--gold-2); font-variant-numeric: tabular-nums; }
+    .kpi .l { color: var(--soft); font-size: .9rem; }
+    .kpi .sub { color: var(--muted); font-size: .78rem; }
+    .section { margin-top: 14px; }
+
+    .bars { display: grid; gap: 9px; }
+    .bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 48px; gap: 3px 10px; align-items: center; font-size: .9rem; }
+    .bar-row > span { grid-column: 1 / -1; color: var(--soft); }
+    .bar { height: 10px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+    .bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--gold-3), var(--gold)); }
+    .bar-row b { text-align: end; font-variant-numeric: tabular-nums; }
+
+    .chart { position: relative; }
+    .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .chart .grid-line { stroke: rgba(255, 255, 255, .08); stroke-width: 1; }
+    .chart .axis-t { fill: var(--muted); font-size: 11px; font-family: inherit; }
+    .chart .area { fill: url(#gold-fade); }
+    .chart .line { fill: none; stroke: var(--gold); stroke-width: 2; stroke-linejoin: round; }
+    .chart .dot { fill: var(--gold-2); stroke: var(--bg); stroke-width: 2; }
+    .chart .hit { fill: transparent; cursor: crosshair; }
+    .chart .cross { stroke: rgba(255, 255, 255, .35); stroke-width: 1; stroke-dasharray: 3 3; }
+    .tip { position: absolute; pointer-events: none; z-index: 3; padding: 6px 10px; border-radius: 10px; background: #fff; color: #1a1240; font-size: .82rem; font-weight: 800; white-space: nowrap; box-shadow: 0 8px 20px rgba(0, 0, 0, .35); transform: translate(-50%, -125%); }
+    .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: rgba(0, 0, 0, .3); border: 1px solid var(--line); }
+    .seg button { min-height: 32px; padding: 3px 12px; font-size: .82rem; background: transparent; color: var(--soft); box-shadow: none; }
+    .seg button.on { background: var(--panel-2); color: var(--gold-2); }
+
+    .games { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+    .game-card .gh { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .game-card .gh b { font-size: 1.1rem; }
+    .game-card .gh small { color: var(--muted); margin-inline-start: auto; }
+    .lv { display: grid; grid-template-columns: 80px minmax(0, 1fr) 44px 44px 50px; gap: 6px; align-items: center; font-size: .85rem; padding: 6px 0; border-top: 1px solid var(--line); }
+    .lv.head { color: var(--muted); font-size: .75rem; border-top: 0; }
+    .lv .num { text-align: center; font-variant-numeric: tabular-nums; }
+    .rate-bar { height: 8px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+    .rate-bar i { display: block; height: 100%; border-radius: 4px; background: var(--good); }
+    .rate-bar.hard i { background: var(--bad); }
+    .tag { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 99px; font-size: .72rem; font-weight: 800; }
+    .tag.hard { background: rgba(255, 107, 129, .16); color: #ffc2cc; }
+    .tag.easy { background: rgba(61, 220, 151, .14); color: #a8f5d2; }
+    .hard-list { display: grid; gap: 8px; }
+    .hard-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: rgba(255, 107, 129, .07); border: 1px solid rgba(255, 107, 129, .2); }
+    .hard-item .pct { font-family: 'Lalezar', sans-serif; font-size: 1.4rem; color: #ffc2cc; }
+
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+    .filters input[type="search"] { flex: 1 1 220px; }
+    .filters label { color: var(--muted); font-size: .8rem; display: grid; gap: 2px; }
+    .table-box { overflow-x: auto; margin-top: 10px; border-radius: 16px; border: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; min-width: 1180px; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: start; vertical-align: top; }
+    th { color: var(--muted); font-size: .78rem; background: rgba(0, 0, 0, .25); }
+    tbody tr:hover td { background: rgba(255, 255, 255, .03); }
+    td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td.name { font-weight: 800; color: var(--gold-2); white-space: nowrap; }
+    .stars { color: var(--gold); letter-spacing: 1px; white-space: nowrap; }
+    .comment { max-width: 260px; color: var(--soft); }
+    .dev { white-space: nowrap; }
+    .dev small { display: block; color: var(--muted); font-size: .75rem; }
+    .acts { display: flex; gap: 6px; }
+    button.vis.off { background: rgba(255, 255, 255, .07); color: var(--muted); border: 1px solid var(--line); box-shadow: none; }
+    tr.is-hidden td:not(:last-child) { opacity: .5; }
+    .empty { color: var(--muted); text-align: center; padding: 30px; }
+
+    .hero-row { display: grid; grid-template-columns: 48px 40px minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, .04); border: 1px solid var(--line); }
+    .hero-row + .hero-row { margin-top: 6px; }
+    .hero-row .rk { text-align: center; font-weight: 800; font-size: 1.1rem; }
+    .hero-row .av { font-size: 1.6rem; text-align: center; }
+    .hero-row .pts { color: var(--gold-2); font-variant-numeric: tabular-nums; }
+
+    .steps { margin: 0; padding-inline-start: 22px; display: grid; gap: 8px; color: var(--soft); }
+    .steps b { color: var(--text); }
+    code { background: rgba(0, 0, 0, .4); border: 1px solid var(--line); border-radius: 8px; padding: 1px 7px; direction: ltr; unicode-bidi: isolate; font-family: ui-monospace, Consolas, monospace; font-size: .85rem; color: var(--text); }
+    .status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; font-weight: 800; font-size: .85rem; }
+    .status.ok { background: rgba(61, 220, 151, .14); color: #a8f5d2; }
+    .status.no { background: rgba(255, 107, 129, .14); color: #ffc2cc; }
+    .chat-list { display: grid; gap: 6px; margin-top: 10px; }
+    .chat-list div { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(255, 255, 255, .05); }
+
+    .foot { margin-top: 26px; text-align: center; color: var(--muted); font-size: .85rem; display: grid; justify-items: center; gap: 4px; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 20; padding: 10px 18px; border-radius: 14px; background: #fff; color: #1a1240; font-weight: 800; box-shadow: 0 12px 30px rgba(0, 0, 0, .4); }
+
+    @media (max-width: 860px) { .two { grid-template-columns: 1fr; } .top .credit { display: none; } }
+    @media (max-width: 520px) {
+      .kpi .n { font-size: 2rem; }
+      .lv { grid-template-columns: 64px minmax(0, 1fr) 34px 34px 42px; }
+      .games { grid-template-columns: 1fr; }
+      .hero-row { grid-template-columns: 36px 32px minmax(0, 1fr) auto auto; }
+      .hero-row .crys { display: none; }
+      .tabs { border-radius: 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .sig span { animation: none; } .sig path { animation: none; stroke-dashoffset: 0; } html { scroll-behavior: auto; } }
   </style>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="crest-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe7a3"/><stop offset=".55" stop-color="#f5c96a"/><stop offset="1" stop-color="#b8862a"/></linearGradient>
+      <symbol id="crest" viewBox="0 0 64 64">
+        <path d="M32 3 L56 12 V30 C56 45 45 56 32 61 C19 56 8 45 8 30 V12 Z" fill="url(#crest-g)"/>
+        <path d="M32 8 L51 15 V30 C51 42 42 51 32 55.5 C22 51 13 42 13 30 V15 Z" fill="#1a1150"/>
+        <path d="M20 38 L22 24 L28 31 L32 21 L36 31 L42 24 L44 38 Z" fill="url(#crest-g)"/>
+        <circle cx="32" cy="44" r="3" fill="#ffe7a3"/>
+      </symbol>
+    </defs>
+  </svg>
+
   <div class="wrap">
-    <h1>لوحة تقييمات كون الفيزياء السعيد</h1>
-    <p class="sub">صفحة خاصة بك: أسماء المقيّمين وتقييماتهم. لا تشارك رابطها ولا كلمة المرور.</p>
-
-    <form class="card login" id="login">
-      <label for="key" style="display:block;margin-bottom:8px">🔑 كلمة مرور اللوحة (ADMIN_KEY)</label>
-      <div class="row">
-        <input id="key" type="password" autocomplete="current-password" style="flex:1;min-width:180px">
-        <button type="submit">دخول</button>
-      </div>
-      <div class="err" id="err" aria-live="polite"></div>
-    </form>
-
-    <div id="board" hidden>
-      <div class="row" style="justify-content:space-between">
-        <div class="row">
-          <input id="search" placeholder="ابحث بالاسم أو الملاحظة أو الجهاز" aria-label="بحث">
-          <select id="role-filter" aria-label="تصفية حسب الصفة"><option value="">كل الصفات</option></select>
+    <section id="login-view">
+      <form class="login-box" id="login">
+        <div class="lock" aria-hidden="true">🔐</div>
+        <h1>لوحة التحكم الخاصة</h1>
+        <p>كون الفيزياء السعيد • للمالك فقط</p>
+        <label for="key" class="sr">كلمة المرور</label>
+        <div class="login-row">
+          <input id="key" type="password" autocomplete="current-password" placeholder="كلمة المرور (ADMIN_KEY)">
+          <button type="submit">دخول</button>
         </div>
-        <div class="row">
-          <button class="ghost" id="refresh" type="button">↻ تحديث</button>
-          <button class="ghost" id="csv" type="button">⬇ تنزيل CSV</button>
-          <button class="ghost" id="logout" type="button">خروج</button>
+        <div class="err" id="err" aria-live="polite"></div>
+        <div class="login-foot" id="sig-login"></div>
+      </form>
+    </section>
+
+    <section id="app" hidden>
+      <header class="top">
+        <svg class="crest" aria-hidden="true"><use href="#crest"/></svg>
+        <div class="titles">
+          <h1>لوحة تحكم كون الفيزياء السعيد</h1>
+          <p id="updated">—</p>
+        </div>
+        <div class="spacer"></div>
+        <div id="sig-top"></div>
+        <div class="head-actions">
+          <button class="ghost mini" id="refresh" type="button" title="تحديث" aria-label="تحديث">↻ تحديث</button>
+          <button class="ghost mini" id="logout" type="button">خروج</button>
+        </div>
+      </header>
+
+      <nav class="tabs" role="tablist" aria-label="أقسام اللوحة">
+        <button role="tab" data-tab="overview" class="on">🏠 نظرة عامة</button>
+        <button role="tab" data-tab="ratings">⭐ التقييمات</button>
+        <button role="tab" data-tab="play">🎮 اللعب</button>
+        <button role="tab" data-tab="heroes">👑 الأبطال</button>
+        <button role="tab" data-tab="alerts">🔔 التنبيهات</button>
+      </nav>
+
+      <div class="panel" data-panel="overview">
+        <div class="grid kpis">
+          <div class="card kpi"><div class="ic">🧑‍🚀</div><div class="n" id="k-players">0</div><div class="l">لاعب مختلف</div><div class="sub">منذ تفعيل الإحصائيات</div></div>
+          <div class="card kpi"><div class="ic">🚪</div><div class="n" id="k-visits">0</div><div class="l">زيارة</div><div class="sub">آخر 30 يومًا</div></div>
+          <div class="card kpi"><div class="ic">▶️</div><div class="n" id="k-starts">0</div><div class="l">محاولة لعب</div><div class="sub">آخر 30 يومًا</div></div>
+          <div class="card kpi"><div class="ic">🏁</div><div class="n" id="k-success">—</div><div class="l">نسبة النجاح</div><div class="sub">نجاح ÷ محاولة</div></div>
+          <div class="card kpi"><div class="ic">💬</div><div class="n" id="k-count">0</div><div class="l">تقييم</div><div class="sub" id="k-count-sub">—</div></div>
+          <div class="card kpi"><div class="ic">⭐</div><div class="n" id="k-avg">—</div><div class="l">متوسط النجوم</div><div class="sub">من 5</div></div>
+        </div>
+        <div class="grid two section">
+          <div class="card">
+            <div class="chart-head">
+              <h2>📈 <span id="trend-title">اللاعبون يوميًا</span></h2>
+              <div class="seg" role="group" aria-label="اختر المقياس">
+                <button data-metric="players" class="on">اللاعبون</button><button data-metric="starts">المحاولات</button><button data-metric="ratings">التقييمات</button>
+              </div>
+            </div>
+            <p class="hint">آخر 30 يومًا • مرّر الماوس أو المس الرسم لترى رقم كل يوم</p>
+            <div class="chart" id="trend"></div>
+          </div>
+          <div class="card">
+            <h2>📱 الأجهزة</h2>
+            <p class="hint">من أي جهاز يدخل اللاعبون (كل الزيارات)</p>
+            <div class="bars" id="visit-dev"></div>
+            <h2 style="margin-top:16px">❓ متوسط كل سؤال</h2>
+            <div class="bars" id="by-q"></div>
+          </div>
+        </div>
+        <div class="grid two section">
+          <div class="card">
+            <h2>🧱 أصعب المراحل</h2>
+            <p class="hint">المراحل التي يفشل فيها اللاعبون أكثر (5 محاولات على الأقل)</p>
+            <div class="hard-list" id="hard-top"></div>
+          </div>
+          <div class="card">
+            <h2>🏅 اللعبة المفضّلة</h2>
+            <p class="hint">من إجابات التقييم</p>
+            <div class="bars" id="by-fav"></div>
+          </div>
         </div>
       </div>
-      <div class="grid">
-        <div class="card kpi"><div class="n" id="k-count">0</div><div class="l">عدد التقييمات</div></div>
-        <div class="card kpi"><div class="n" id="k-avg">—</div><div class="l">متوسط النجوم (من 5)</div></div>
-        <div class="card"><h2>متوسط كل سؤال</h2><div class="bars" id="by-q"></div></div>
-        <div class="card"><h2>الصفة</h2><div class="bars" id="by-role"></div></div>
-        <div class="card"><h2>الأعمار</h2><div class="bars" id="by-age"></div></div>
-        <div class="card"><h2>اللعبة المفضّلة</h2><div class="bars" id="by-fav"></div></div>
-        <div class="card"><h2>الأجهزة</h2><div class="bars" id="by-dev"></div></div>
-        <div class="card"><h2>المتصفح أو التطبيق</h2><div class="bars" id="by-browser"></div></div>
+
+      <div class="panel" data-panel="ratings" hidden>
+        <div class="card">
+          <div class="filters">
+            <input type="search" id="search" placeholder="ابحث بالاسم أو الملاحظة أو الجهاز" aria-label="بحث">
+            <select id="f-role" aria-label="الصفة"><option value="">كل الصفات</option></select>
+            <select id="f-dev" aria-label="الجهاز"><option value="">كل الأجهزة</option><option value="phone">📱 جوال</option><option value="tablet">📟 تابلت</option><option value="computer">💻 كمبيوتر</option><option value="none">بدون جهاز (قديم)</option></select>
+            <label>من<input type="date" id="f-from"></label>
+            <label>إلى<input type="date" id="f-to"></label>
+            <button class="ghost mini" id="f-clear" type="button">مسح التصفية</button>
+            <button class="ghost mini" id="csv" type="button">⬇ CSV</button>
+          </div>
+        </div>
+        <div class="grid kpis section">
+          <div class="card kpi"><div class="n" id="r-count">0</div><div class="l">تقييم مطابق</div></div>
+          <div class="card kpi"><div class="n" id="r-avg">—</div><div class="l">متوسط النجوم</div></div>
+          <div class="card kpi"><div class="n" id="r-comments">0</div><div class="l">ملاحظة مكتوبة</div></div>
+        </div>
+        <div class="grid three section">
+          <div class="card"><h2>🎒 الصفة</h2><div class="bars" id="by-role"></div></div>
+          <div class="card"><h2>🎈 الأعمار</h2><div class="bars" id="by-age"></div></div>
+          <div class="card"><h2>📱 الأجهزة</h2><div class="bars" id="by-dev"></div></div>
+          <div class="card"><h2>🌐 المتصفح أو التطبيق</h2><div class="bars" id="by-browser"></div></div>
+        </div>
+        <div class="card section">
+          <h2>📋 كل التقييمات</h2>
+          <p class="hint">تظهر في صفحة اللعبة <b>بدون الاسم والجهاز</b>. «ظاهر/مخفي» يتحكم بظهورها هناك، و«حذف» يمسحها نهائيًا (بضغطتين).</p>
+          <div class="table-box"><table>
+            <thead><tr><th>التاريخ</th><th>الاسم</th><th>العمر</th><th>الصفة</th><th>الاستمتاع</th><th>الفهم</th><th>السهولة</th><th>التصميم</th><th>التوصية</th><th>المفضّلة</th><th>الملاحظة</th><th>الجهاز</th><th>إجراءات</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table></div>
+          <div class="empty" id="empty" hidden>لا توجد تقييمات مطابقة.</div>
+        </div>
       </div>
-      <div class="card">
-        <h2>كل التقييمات</h2>
-        <p class="sub" style="margin:0">التقييمات تظهر في صفحة اللعبة <b>بدون الاسم والجهاز</b>. اضغط «ظاهر» لإخفاء أي تقييم أو ملاحظة من صفحة اللعبة.</p>
-        <div class="table-box"><table>
-          <thead><tr><th>التاريخ</th><th>الاسم</th><th>العمر</th><th>الصفة</th><th>الاستمتاع</th><th>الفهم</th><th>السهولة</th><th>التصميم</th><th>التوصية</th><th>المفضّلة</th><th>الملاحظة</th><th>الجهاز</th><th title="هل يظهر هذا التقييم (بدون الاسم) في صفحة اللعبة؟">في اللعبة</th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table></div>
-        <div class="empty" id="empty" hidden>لا توجد تقييمات بعد.</div>
+
+      <div class="panel" data-panel="play" hidden>
+        <div class="card">
+          <h2>🎮 كيف يلعبون؟</h2>
+          <p class="hint" style="margin:0">لكل مرحلة: نسبة النجاح، وعدد مرات النجاح والفشل، ومتوسط النجوم. <b style="color:#ffc2cc">الأحمر</b> = مرحلة صعبة (نجاح أقل من 50% بعد 5 محاولات). كل الأرقام بدون أسماء.</p>
+        </div>
+        <div class="games section" id="games"></div>
       </div>
-    </div>
+
+      <div class="panel" data-panel="heroes" hidden>
+        <div class="card">
+          <h2>👑 لوحة الأبطال</h2>
+          <p class="hint">اللاعبون يظهرون بألقاب يختارونها من كلمات جاهزة فقط. يمكنك إزالة أي لاعب من اللوحة (بضغطتين).</p>
+          <div id="heroes"></div>
+        </div>
+      </div>
+
+      <div class="panel" data-panel="alerts" hidden>
+        <div class="grid two">
+          <div class="card">
+            <h2>🔔 تنبيه تيليجرام لكل تقييم جديد</h2>
+            <p class="hint">تصلك رسالة على تيليجرام فيها الاسم والنجوم والملاحظة والجهاز.</p>
+            <ol class="steps">
+              <li>في تيليجرام افتح <b>@BotFather</b> واكتب <code>/newbot</code> واختر اسمًا للبوت. سيعطيك <b>رمزًا طويلًا (Token)</b>.</li>
+              <li>في Vercel: <b>Settings ← Environment Variables</b>، أضف <code>TELEGRAM_BOT_TOKEN</code> وقيمته الرمز، ثم <b>Redeploy</b>.</li>
+              <li>افتح البوت الجديد في تيليجرام، واضغط <b>Start</b> واكتب له أي رسالة.</li>
+              <li>اضغط هنا «اعرض المحادثات» وانسخ الرقم الذي يظهر.</li>
+              <li>أضف في Vercel <code>TELEGRAM_CHAT_ID</code> وقيمته هذا الرقم، ثم <b>Redeploy</b>، ثم اضغط «أرسل رسالة تجربة».</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h2>الحالة</h2>
+            <div style="display:grid;gap:8px;margin:8px 0 14px">
+              <div>رمز البوت: <span id="tg-token" class="status no">—</span></div>
+              <div>رقم المحادثة: <span id="tg-chat" class="status no">—</span></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="ghost" id="tg-chats" type="button">🔎 اعرض المحادثات</button>
+              <button id="tg-test" type="button">📨 أرسل رسالة تجربة</button>
+            </div>
+            <div class="err" id="tg-msg" aria-live="polite"></div>
+            <div class="chat-list" id="tg-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="foot"><div id="sig-foot"></div><span>كون الفيزياء السعيد • لوحة خاصة، لا تشارك رابطها ولا كلمة المرور</span></footer>
+    </section>
   </div>
 
   <script>
     const ROLES = { student: '🎒 طالب', teacher: '👩‍🏫 معلم / دكتور', employee: '💼 موظف', parent: '👨‍👩‍👧 ولي أمر', other: '✨ أخرى' };
-    const QS = { fun: 'كم استمتعت باللعب؟', learn: 'هل ساعدت على فهم الفيزياء؟', easy: 'سهولة اللعب', look: 'التصميم والرسوم', recommend: 'هل تنصح بها؟' };
-    const GAMES = { bird: 'الطائر السعيد', water: 'أنقذ الملك', magnet: 'بطل المغناطيس', circuit: 'مغامرة الدوائر', light: 'متاهة الضوء', energy: 'راكب الطاقة' };
+    const QS = { fun: 'الاستمتاع', learn: 'فهم الفيزياء', easy: 'سهولة اللعب', look: 'التصميم والرسوم', recommend: 'التوصية' };
+    const GAMES = { bird: ['🐦', 'الطائر السعيد'], water: ['👑', 'أنقذ الملك'], magnet: ['🧲', 'بطل المغناطيس'], circuit: ['💡', 'مغامرة الدوائر'], light: ['🔦', 'متاهة الضوء'], energy: ['🎢', 'راكب الطاقة'] };
+    const TYPES = { phone: '📱 جوال', tablet: '📟 تابلت', computer: '💻 كمبيوتر' };
+    const OSES = { iPhone: 'آيفون', iPad: 'آيباد', Android: 'أندرويد', Windows: 'ويندوز', Mac: 'ماك', ChromeOS: 'كروم بوك', Linux: 'لينكس', other: 'نظام آخر' };
+    const NOUNS = [['🦅', 'الصقر'], ['🐉', 'التنين'], ['⭐', 'النجم'], ['🚀', 'الصاروخ'], ['🤖', 'الروبوت'], ['🦁', 'الأسد'], ['🐬', 'الدلفين'], ['🦊', 'الثعلب'], ['🐯', 'النمر'], ['🪐', 'الكوكب'], ['☄️', 'المذنّب'], ['⚡', 'البرق'], ['🐧', 'البطريق'], ['🐳', 'الحوت'], ['🐆', 'الفهد'], ['🦉', 'البوم']];
+    const ADJS = ['الذهبي', 'الشجاع', 'اللامع', 'الخارق', 'السريع', 'الذكي', 'المضيء', 'الطائر', 'العبقري', 'الكوني', 'الفضي', 'الناري', 'الثلجي', 'السعيد', 'المغامر', 'الأسطوري'];
     const ERRORS = {
       'wrong-key': 'كلمة المرور غير صحيحة.',
-      'admin-key-not-configured': 'لم تُضبط كلمة مرور اللوحة بعد: أضف المتغير ADMIN_KEY في إعدادات Vercel ثم أعد النشر.',
-      'storage-not-configured': 'قاعدة البيانات غير مربوطة بعد: اربط Upstash Redis بالمشروع من تبويب Storage في Vercel.'
+      'admin-key-not-configured': 'لم تُضبط كلمة مرور اللوحة بعد: أضف ADMIN_KEY في إعدادات Vercel ثم أعد النشر.',
+      'storage-not-configured': 'قاعدة البيانات غير مربوطة بعد: اربط Upstash Redis من تبويب Storage في Vercel.',
+      'telegram-not-configured': 'أضف TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID في Vercel ثم أعد النشر.',
+      'telegram-token-missing': 'أضف TELEGRAM_BOT_TOKEN في Vercel ثم أعد النشر أولًا.',
+      'telegram-unreachable': 'تعذّر الاتصال بتيليجرام، حاول بعد قليل.'
     };
     const $ = s => document.querySelector(s);
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
     const ageLabel = a => a > 16 ? '+16' : a;
-    const TYPES = { phone: '📱 جوال', tablet: '📟 تابلت', computer: '💻 كمبيوتر' };
-    const OSES = { iPhone: 'آيفون', iPad: 'آيباد', Android: 'أندرويد', Windows: 'ويندوز', Mac: 'ماك', ChromeOS: 'كروم بوك', Linux: 'لينكس', other: 'نظام آخر' };
+    const fmt = n => Number(n || 0).toLocaleString('en-US');
     const devName = d => d ? `${(TYPES[d.type] || '').split(' ')[0]} ${OSES[d.os] || d.os}${d.osVer ? ' ' + d.osVer : ''}` : '';
     const browserName = d => !d ? 'غير معروف' : d.browser === 'other' ? 'آخر' : d.browser;
-    let all = [], hidden = new Set();
+    const scoreOf = r => Object.keys(QS).reduce((a, k) => a + (r.answers?.[k] || 0), 0) / Object.keys(QS).length;
+    let ratings = [], hidden = new Set(), stats = null, metric = 'players';
+
+    const SIG = big => `<div class="credit ${big ? 'big' : ''}"><small>إعداد</small><div class="sig"><span>الياس بن صالح الحميد</span><svg viewBox="0 0 300 30" aria-hidden="true"><path d="M6 20 C 60 32, 120 4, 170 16 S 250 30, 294 8"/></svg></div></div>`;
+    $('#sig-login').innerHTML = SIG(true);
+    $('#sig-top').innerHTML = SIG(false);
+    $('#sig-foot').innerHTML = SIG(true);
 
     function storedKey() { try { return sessionStorage.getItem('hpu-admin') || ''; } catch { return ''; } }
     function keepKey(k) { try { k ? sessionStorage.setItem('hpu-admin', k) : sessionStorage.removeItem('hpu-admin'); } catch {} }
+    const api = (path, opts = {}) => fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', 'x-admin-key': storedKey(), ...(opts.headers || {}) } });
+    function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 
     async function load(key) {
       $('#err').textContent = 'جارٍ التحميل…';
       try {
         const r = await fetch('/api/ratings', { headers: { 'x-admin-key': key } });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok) { $('#err').textContent = ERRORS[j.error] || 'تعذّر جلب التقييمات (' + r.status + ').'; keepKey(''); return; }
+        if (!r.ok) { $('#err').textContent = ERRORS[j.error] || 'تعذّر جلب البيانات (' + r.status + ').'; keepKey(''); return; }
         keepKey(key);
-        all = j.ratings || [];
+        ratings = j.ratings || [];
         hidden = new Set(j.hidden || []);
+        stats = await api('/api/stats').then(x => x.ok ? x.json() : null).catch(() => null);
         $('#err').textContent = '';
-        $('#login').hidden = true;
-        $('#board').hidden = false;
-        render();
+        $('#login-view').hidden = true;
+        $('#app').hidden = false;
+        $('#updated').textContent = 'آخر تحديث: ' + new Date().toLocaleString('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' });
+        renderAll();
       } catch {
         $('#err').textContent = 'تعذّر الاتصال بالخادم. افتح هذه الصفحة من رابط Vercel.';
       }
     }
 
-    function bars(el, entries, max, fmt = v => v) {
+    function bars(el, entries, max, f = v => v) {
       el.innerHTML = entries.length ? entries.map(([label, v]) =>
-        `<div class="bar-row"><span>${esc(label)}</span><div class="bar"><i style="width:${max ? (v / max) * 100 : 0}%"></i></div><b>${fmt(v)}</b></div>`).join('')
-        : '<span class="sub">—</span>';
+        `<div class="bar-row" title="${esc(label)}: ${f(v)}"><span>${esc(label)}</span><div class="bar"><i style="width:${max ? Math.max(2, (v / max) * 100) : 0}%"></i></div><b>${f(v)}</b></div>`).join('')
+        : '<span class="hint">لا توجد بيانات بعد</span>';
     }
     const count = (list, f) => { const m = {}; list.forEach(x => { const k = f(x); if (k !== '' && k != null) m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
 
-    function render() {
-      const q = $('#search').value.trim().toLowerCase(), role = $('#role-filter').value;
-      const list = all.filter(r => (!role || r.role === role) && (!q || [r.name, r.comment, devName(r.device), browserName(r.device), r.device?.model].join(' ').toLowerCase().includes(q)));
-      $('#k-count').textContent = list.length;
-      const avgOf = k => list.length ? list.reduce((a, r) => a + (r.answers?.[k] || 0), 0) / list.length : 0;
-      const overall = list.length ? Object.keys(QS).reduce((a, k) => a + avgOf(k), 0) / Object.keys(QS).length : 0;
-      $('#k-avg').textContent = list.length ? overall.toFixed(1) + ' ★' : '—';
-      bars($('#by-q'), Object.entries(QS).map(([k, l]) => [l, avgOf(k)]), 5, v => v.toFixed(1));
+    function renderAll() { renderOverview(); renderRatings(); renderPlay(); renderHeroes(); renderAlerts(); }
+
+    // ---------- overview ----------
+    function levelRows() {
+      const lv = stats?.levels || {};
+      const rows = [];
+      Object.keys(GAMES).forEach(g => { for (let i = 0; i < 5; i++) {
+        const s = lv[`${g}:${i}:start`] || 0, w = lv[`${g}:${i}:win`] || 0, f = lv[`${g}:${i}:fail`] || 0, st = lv[`${g}:${i}:stars`] || 0;
+        rows.push({ g, i, starts: s, wins: w, fails: f, rate: s ? Math.min(1, w / s) : null, avgStars: w ? st / w : 0 });
+      } });
+      return rows;
+    }
+
+    function renderOverview() {
+      const days = stats?.days || [];
+      const sum = k => days.reduce((a, d) => a + (d[k] || 0), 0);
+      $('#k-players').textContent = fmt(stats?.players || 0);
+      $('#k-visits').textContent = fmt(sum('visits'));
+      $('#k-starts').textContent = fmt(sum('starts'));
+      const st = sum('starts');
+      $('#k-success').textContent = st ? Math.round((sum('wins') / st) * 100) + '%' : '—';
+      $('#k-count').textContent = fmt(ratings.length);
+      const week = ratings.filter(r => Date.now() - new Date(r.at) < 7 * 86400e3).length;
+      $('#k-count-sub').textContent = `${week} في آخر 7 أيام`;
+      const avg = ratings.length ? ratings.reduce((a, r) => a + scoreOf(r), 0) / ratings.length : 0;
+      $('#k-avg').textContent = ratings.length ? avg.toFixed(1) : '—';
+      drawTrend();
+      const dev = stats?.devices || {};
+      const devEntries = Object.entries(dev).map(([k, v]) => [TYPES[k] || k, v]).sort((a, b) => b[1] - a[1]);
+      bars($('#visit-dev'), devEntries, devEntries[0]?.[1], fmt);
+      const avgOf = k => ratings.length ? ratings.reduce((a, r) => a + (r.answers?.[k] || 0), 0) / ratings.length : 0;
+      bars($('#by-q'), ratings.length ? Object.entries(QS).map(([k, l]) => [l, avgOf(k)]) : [], 5, v => v.toFixed(1));
+      const byFav = count(ratings, r => GAMES[r.favorite] ? GAMES[r.favorite].join(' ') : '');
+      bars($('#by-fav'), byFav, byFav[0]?.[1]);
+      const hard = levelRows().filter(x => x.starts >= 5).sort((a, b) => a.rate - b.rate).slice(0, 5);
+      $('#hard-top').innerHTML = hard.length ? hard.map(x => `
+        <div class="hard-item"><span style="font-size:1.4rem">${GAMES[x.g][0]}</span>
+          <div><b>${GAMES[x.g][1]} • المرحلة ${x.i + 1}</b><div class="hint" style="margin:0">${fmt(x.starts)} محاولة • ${fmt(x.fails)} فشل</div></div>
+          <span class="pct" title="نسبة النجاح">${Math.round(x.rate * 100)}%</span></div>`).join('')
+        : '<span class="hint">تظهر هنا بعد أن يلعب الناس قليلًا.</span>';
+    }
+
+    function drawTrend() {
+      const days = stats?.days || [];
+      const titles = { players: 'اللاعبون يوميًا', starts: 'المحاولات يوميًا', ratings: 'التقييمات يوميًا' };
+      $('#trend-title').textContent = titles[metric];
+      document.querySelectorAll('[data-metric]').forEach(b => b.classList.toggle('on', b.dataset.metric === metric));
+      const box = $('#trend');
+      if (!days.length) { box.innerHTML = '<p class="hint">لا توجد بيانات بعد.</p>'; return; }
+      const W = 640, H = 230, L = 34, R = 10, T = 14, B = 26;
+      const vals = days.map(d => d[metric] || 0);
+      const nice = Math.ceil(Math.max(4, ...vals) / 4) * 4;
+      const step = (W - L - R) / (days.length - 1);
+      const x = i => L + i * step;
+      const y = v => T + (H - T - B) * (1 - v / nice);
+      const ticks = [0, .25, .5, .75, 1].map(f => Math.round(nice * f));
+      const pts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+      const lbl = d => { const [, m, dd] = d.split('-'); return `${+dd}/${+m}`; };
+      box.innerHTML = `
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${titles[metric]}" direction="ltr">
+          <defs><linearGradient id="gold-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5c96a" stop-opacity=".35"/><stop offset="1" stop-color="#f5c96a" stop-opacity="0"/></linearGradient></defs>
+          ${ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis-t" x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join('')}
+          ${days.map((d, i) => i % 5 === 4 || i === 0 ? `<text class="axis-t" x="${x(i)}" y="${H - 6}" text-anchor="middle">${lbl(d.day)}</text>` : '').join('')}
+          <polygon class="area" points="${x(0)},${y(0)} ${pts.join(' ')} ${x(days.length - 1)},${y(0)}"/>
+          <polyline class="line" points="${pts.join(' ')}"/>
+          <line class="cross" id="cross" y1="${T}" y2="${H - B}" x1="0" x2="0" visibility="hidden"/>
+          <circle class="dot" id="hdot" r="5" cx="0" cy="0" visibility="hidden"/>
+          ${days.map((d, i) => `<rect class="hit" data-i="${i}" x="${x(i) - step / 2}" y="${T}" width="${step}" height="${H - T - B}"/>`).join('')}
+        </svg><div class="tip" id="tip" hidden></div>`;
+      const svg = box.querySelector('svg'), tip = box.querySelector('#tip'), cross = box.querySelector('#cross'), dot = box.querySelector('#hdot');
+      const show = i => {
+        const px = x(i), py = y(vals[i]);
+        cross.setAttribute('x1', px); cross.setAttribute('x2', px); cross.setAttribute('visibility', 'visible');
+        dot.setAttribute('cx', px); dot.setAttribute('cy', py); dot.setAttribute('visibility', 'visible');
+        const sc = svg.getBoundingClientRect().width / W;
+        tip.hidden = false; tip.style.left = px * sc + 'px'; tip.style.top = py * sc + 'px';
+        tip.textContent = `${lbl(days[i].day)} • ${fmt(vals[i])}`;
+      };
+      box.querySelectorAll('.hit').forEach(h => { h.addEventListener('pointerenter', () => show(+h.dataset.i)); h.addEventListener('pointerdown', () => show(+h.dataset.i)); });
+      svg.addEventListener('pointerleave', () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); });
+    }
+
+    // ---------- ratings ----------
+    function filtered() {
+      const q = $('#search').value.trim().toLowerCase(), role = $('#f-role').value, dev = $('#f-dev').value;
+      const from = $('#f-from').value ? new Date($('#f-from').value + 'T00:00:00') : null;
+      const to = $('#f-to').value ? new Date($('#f-to').value + 'T23:59:59') : null;
+      return ratings.filter(r => {
+        const at = new Date(r.at);
+        if (role && r.role !== role) return false;
+        if (dev === 'none' ? !!r.device : (dev && r.device?.type !== dev)) return false;
+        if (from && at < from) return false;
+        if (to && at > to) return false;
+        if (q && ![r.name, r.comment, devName(r.device), browserName(r.device), r.device?.model].join(' ').toLowerCase().includes(q)) return false;
+        return true;
+      });
+    }
+
+    function renderRatings() {
+      const list = filtered();
+      $('#r-count').textContent = fmt(list.length);
+      $('#r-avg').textContent = list.length ? (list.reduce((a, r) => a + scoreOf(r), 0) / list.length).toFixed(1) : '—';
+      $('#r-comments').textContent = fmt(list.filter(r => r.comment).length);
       const byRole = count(list, r => ROLES[r.role] || r.role);
       bars($('#by-role'), byRole, byRole[0]?.[1]);
       const byAge = count(list, r => ageLabel(r.age)).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
       bars($('#by-age'), byAge, Math.max(0, ...byAge.map(x => x[1])));
-      const byFav = count(list, r => GAMES[r.favorite] || '');
-      bars($('#by-fav'), byFav, byFav[0]?.[1]);
       const byDev = count(list, r => r.device ? `${TYPES[r.device.type] || ''} — ${OSES[r.device.os] || r.device.os}` : 'غير معروف (تقييم قديم)');
       bars($('#by-dev'), byDev, byDev[0]?.[1]);
       const byBrowser = count(list, r => browserName(r.device));
       bars($('#by-browser'), byBrowser, byBrowser[0]?.[1]);
       $('#rows').innerHTML = list.map(r => `<tr class="${hidden.has(r.id) ? 'is-hidden' : ''}">
         <td class="num">${esc(new Date(r.at).toLocaleString('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }))}</td>
-        <td>${esc(r.name)}</td><td class="num">${esc(ageLabel(r.age))}</td><td>${esc(ROLES[r.role] || r.role)}</td>
+        <td class="name">${esc(r.name)}</td><td class="num">${esc(ageLabel(r.age))}</td><td>${esc(ROLES[r.role] || r.role)}</td>
         ${Object.keys(QS).map(k => `<td class="stars" title="${r.answers?.[k] || 0}/5">${stars(r.answers?.[k] || 0)}</td>`).join('')}
-        <td>${esc(GAMES[r.favorite] || '—')}</td><td class="comment">${esc(r.comment || '')}</td>
+        <td>${esc(GAMES[r.favorite] ? GAMES[r.favorite].join(' ') : '—')}</td><td class="comment">${esc(r.comment || '')}</td>
         <td class="dev" title="${esc(r.device?.ua || '')}">${r.device ? `${esc(devName(r.device))} · ${esc(browserName(r.device))}
           <small>${esc([r.device.model, r.device.screen && 'شاشة ' + r.device.screen].filter(Boolean).join(' · '))}</small>` : '—'}</td>
-        <td><button type="button" class="vis ${hidden.has(r.id) ? 'off' : ''}" data-id="${esc(r.id)}">${hidden.has(r.id) ? '🙈 مخفي' : '👁 ظاهر'}</button></td></tr>`).join('');
-      document.querySelectorAll('button.vis').forEach(b => b.onclick = () => toggle(b.dataset.id, b));
+        <td><div class="acts">
+          <button type="button" class="mini vis ${hidden.has(r.id) ? 'off' : ''}" data-id="${esc(r.id)}">${hidden.has(r.id) ? '🙈 مخفي' : '👁 ظاهر'}</button>
+          <button type="button" class="mini danger del" data-id="${esc(r.id)}">🗑 حذف</button>
+        </div></td></tr>`).join('');
       $('#empty').hidden = list.length > 0;
+      document.querySelectorAll('button.vis').forEach(b => b.onclick = () => toggle(b.dataset.id, b));
+      document.querySelectorAll('button.del').forEach(b => b.onclick = () => del(b.dataset.id, b));
     }
 
     async function toggle(id, btn) {
       const hide = !hidden.has(id);
       btn.disabled = true;
-      try {
-        const r = await fetch('/api/ratings?action=hide', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': storedKey() }, body: JSON.stringify({ id, hidden: hide }) });
-        if (!r.ok) throw new Error(r.status);
-        hide ? hidden.add(id) : hidden.delete(id);
-        render();
-      } catch {
-        btn.disabled = false;
-        alert('تعذّر الحفظ، حاول مرة أخرى.');
+      const r = await api('/api/ratings?action=hide', { method: 'POST', body: JSON.stringify({ id, hidden: hide }) }).catch(() => null);
+      if (!r?.ok) { btn.disabled = false; toast('تعذّر الحفظ، حاول مرة أخرى.'); return; }
+      hide ? hidden.add(id) : hidden.delete(id);
+      renderRatings();
+      toast(hide ? 'أُخفي من صفحة اللعبة' : 'أصبح ظاهرًا في صفحة اللعبة');
+    }
+
+    // two taps: the first arms the button, the second deletes
+    async function del(id, btn) {
+      if (!btn.classList.contains('armed')) {
+        document.querySelectorAll('button.del.armed').forEach(b => { b.classList.remove('armed'); b.textContent = '🗑 حذف'; });
+        btn.classList.add('armed'); btn.textContent = 'تأكيد الحذف؟';
+        setTimeout(() => { if (btn.isConnected && !btn.disabled) { btn.classList.remove('armed'); btn.textContent = '🗑 حذف'; } }, 4000);
+        return;
       }
+      btn.disabled = true;
+      const r = await api('/api/ratings?action=delete', { method: 'POST', body: JSON.stringify({ id }) }).catch(() => null);
+      if (!r?.ok) { btn.disabled = false; toast('تعذّر الحذف، حاول مرة أخرى.'); return; }
+      ratings = ratings.filter(x => x.id !== id);
+      hidden.delete(id);
+      renderRatings(); renderOverview();
+      toast('حُذف التقييم نهائيًا');
     }
 
     function csv() {
+      const list = filtered();
       const head = ['date', 'name', 'age', 'role', ...Object.keys(QS), 'favorite', 'comment', 'device', 'browser', 'model', 'screen', 'shown_in_game'];
       const cell = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-      const lines = all.map(r => [r.at, r.name, r.age, r.role, ...Object.keys(QS).map(k => r.answers?.[k]), r.favorite, r.comment, devName(r.device), browserName(r.device), r.device?.model, r.device?.screen, hidden.has(r.id) ? 'no' : 'yes'].map(cell).join(','));
+      const lines = list.map(r => [r.at, r.name, r.age, r.role, ...Object.keys(QS).map(k => r.answers?.[k]), r.favorite, r.comment, devName(r.device), browserName(r.device), r.device?.model, r.device?.screen, hidden.has(r.id) ? 'no' : 'yes'].map(cell).join(','));
       const blob = new Blob(['﻿' + [head.join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -217,13 +612,89 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }
 
-    Object.entries(ROLES).forEach(([k, v]) => $('#role-filter').insertAdjacentHTML('beforeend', `<option value="${k}">${v}</option>`));
+    // ---------- play ----------
+    function renderPlay() {
+      const rows = levelRows();
+      $('#games').innerHTML = Object.entries(GAMES).map(([g, [ic, name]]) => {
+        const lv = rows.filter(r => r.g === g);
+        const total = lv.reduce((a, r) => a + r.starts, 0);
+        return `<div class="card game-card">
+          <div class="gh"><span style="font-size:1.6rem">${ic}</span><b>${name}</b><small>${fmt(total)} محاولة</small></div>
+          <div class="lv head"><span>المرحلة</span><span>نسبة النجاح</span><span class="num">نجاح</span><span class="num">فشل</span><span class="num">نجوم</span></div>
+          ${lv.map(r => {
+            const hard = r.rate != null && r.starts >= 5 && r.rate < .5;
+            const easy = r.rate != null && r.starts >= 5 && r.rate >= .9;
+            return `<div class="lv" title="${fmt(r.starts)} محاولة">
+              <span>${r.i + 1} ${hard ? '<span class="tag hard">صعبة</span>' : easy ? '<span class="tag easy">سهلة</span>' : ''}</span>
+              <span style="display:flex;align-items:center;gap:6px"><span class="rate-bar ${hard ? 'hard' : ''}" style="flex:1"><i style="width:${r.rate != null ? Math.max(2, r.rate * 100) : 0}%"></i></span><span class="num" style="width:36px">${r.rate != null ? Math.round(r.rate * 100) + '%' : '—'}</span></span>
+              <span class="num">${fmt(r.wins)}</span><span class="num">${fmt(r.fails)}</span><span class="num">${r.wins ? r.avgStars.toFixed(1) + '★' : '—'}</span>
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('');
+    }
+
+    // ---------- heroes ----------
+    function renderHeroes() {
+      const b = stats?.board || [];
+      $('#heroes').innerHTML = b.length ? b.map((p, i) => `
+        <div class="hero-row">
+          <span class="rk">${['🥇', '🥈', '🥉'][i] || '#' + (i + 1)}</span>
+          <span class="av">${(NOUNS[p.n] || ['✨'])[0]}</span>
+          <b>${esc((NOUNS[p.n] || ['', ''])[1])} ${esc(ADJS[p.a] || '')}</b>
+          <span class="crys">${p.c ? '💎 ' + p.c : ''}</span>
+          <span class="pts">⭐ ${fmt(p.stars)}</span>
+          <button class="mini danger rm" data-pid="${esc(p.pid)}" type="button">إزالة</button>
+        </div>`).join('') : '<p class="hint">لم ينضم أحد بعد.</p>';
+      document.querySelectorAll('button.rm').forEach(btn => btn.onclick = async () => {
+        if (!btn.classList.contains('armed')) { btn.classList.add('armed'); btn.textContent = 'تأكيد؟'; return; }
+        btn.disabled = true;
+        const r = await api('/api/leaderboard?action=remove', { method: 'POST', body: JSON.stringify({ pid: btn.dataset.pid }) }).catch(() => null);
+        if (!r?.ok) { btn.disabled = false; toast('تعذّرت الإزالة'); return; }
+        stats.board = stats.board.filter(x => x.pid !== btn.dataset.pid);
+        renderHeroes();
+        toast('أُزيل اللاعب من اللوحة');
+      });
+    }
+
+    // ---------- alerts ----------
+    function renderAlerts() {
+      const tg = stats?.telegram || {};
+      const set = (el, ok) => { el.className = 'status ' + (ok ? 'ok' : 'no'); el.textContent = ok ? '✓ مضاف' : '✗ غير مضاف'; };
+      set($('#tg-token'), tg.token);
+      set($('#tg-chat'), tg.chat);
+    }
+    $('#tg-chats').onclick = async () => {
+      $('#tg-msg').textContent = 'جارٍ البحث…';
+      const r = await api('/api/stats?action=telegram-chats', { method: 'POST' }).catch(() => null);
+      const j = r ? await r.json().catch(() => ({})) : {};
+      if (!r?.ok) { $('#tg-msg').textContent = ERRORS[j.error] || j.error || 'تعذّر الطلب'; return; }
+      $('#tg-msg').textContent = j.chats.length ? 'انسخ الرقم وضعه في TELEGRAM_CHAT_ID:' : 'لا توجد محادثات بعد: افتح البوت في تيليجرام واضغط Start واكتب له رسالة، ثم أعد المحاولة.';
+      $('#tg-list').innerHTML = j.chats.map(c => `<div><span>${esc(c.name)}</span><code>${esc(c.id)}</code></div>`).join('');
+    };
+    $('#tg-test').onclick = async () => {
+      $('#tg-msg').textContent = 'جارٍ الإرسال…';
+      const r = await api('/api/stats?action=telegram-test', { method: 'POST' }).catch(() => null);
+      const j = r ? await r.json().catch(() => ({})) : {};
+      $('#tg-msg').textContent = r?.ok ? '✅ أُرسلت. إذا وصلتك الرسالة فالتنبيهات تعمل.' : (ERRORS[j.error] || j.error || 'تعذّر الإرسال');
+    };
+
+    // ---------- wiring ----------
+    Object.entries(ROLES).forEach(([k, v]) => $('#f-role').insertAdjacentHTML('beforeend', `<option value="${k}">${v}</option>`));
+    document.querySelectorAll('.tabs [data-tab]').forEach(b => b.onclick = () => {
+      document.querySelectorAll('.tabs [data-tab]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });
+      document.querySelectorAll('.panel').forEach(p => p.hidden = p.dataset.panel !== b.dataset.tab);
+      if (b.dataset.tab === 'overview' && stats) drawTrend();
+      try { sessionStorage.setItem('hpu-admin-tab', b.dataset.tab); } catch {}
+    });
+    try { const t = sessionStorage.getItem('hpu-admin-tab'); if (t) document.querySelector(`[data-tab="${t}"]`)?.click(); } catch {}
+    document.querySelectorAll('[data-metric]').forEach(b => b.onclick = () => { metric = b.dataset.metric; drawTrend(); });
+    ['#search', '#f-role', '#f-dev', '#f-from', '#f-to'].forEach(s => $(s).addEventListener('input', renderRatings));
+    $('#f-clear').onclick = () => { ['#search', '#f-role', '#f-dev', '#f-from', '#f-to'].forEach(s => $(s).value = ''); renderRatings(); };
     $('#login').onsubmit = e => { e.preventDefault(); const k = $('#key').value; if (k) load(k); };
-    $('#search').oninput = render;
-    $('#role-filter').onchange = render;
     $('#refresh').onclick = () => load(storedKey());
     $('#csv').onclick = csv;
-    $('#logout').onclick = () => { keepKey(''); all = []; $('#board').hidden = true; $('#login').hidden = false; $('#key').value = ''; };
+    $('#logout').onclick = () => { keepKey(''); ratings = []; stats = null; $('#app').hidden = true; $('#login-view').hidden = false; $('#key').value = ''; };
     if (storedKey()) load(storedKey());
   </script>
 </body>

@@ -6,6 +6,7 @@ import { gameIcon } from './icons.js';
 import { Stage } from './engine.js';
 import { sfx } from './audio.js';
 import { startSky } from './sky.js';
+import { initExtras, track, trackVisit, signatureHTML, showBoard, syncBoard, dailyCardHTML, dailyPick, checkDaily, streak, boardCardHTML, certificatesHTML, showCertificate } from './extras.js';
 
 import bird from './games/bird.js';
 import water from './games/water.js';
@@ -122,13 +123,14 @@ function showWelcome() {
           ${ROLES.map(r => `<button type="button" class="chip" data-role="${r.id}" role="radio" aria-checked="${p.role === r.id}"><span class="ic">${r.icon}</span>${L(r.name)}</button>`).join('')}
         </div>
       </div>
-      <p class="note-small">🔒 ${T('Your name is not shown inside the games. It is only sent with your rating to the game owner.', 'اسمك لا يظهر داخل الألعاب، ويُرسل فقط مع تقييمك إلى صاحب اللعبة.')}</p>
+      <p class="note-small">🔒 ${T('Your name is not shown inside the games. It only appears on your own certificates and is sent with your rating to the game owner.', 'اسمك لا يظهر داخل الألعاب. يظهر فقط في شهاداتك، ويُرسل مع تقييمك إلى صاحب اللعبة.')}</p>
       <div class="form-error" id="w-err" aria-live="polite"></div>
       <div class="page-actions">
         <button type="submit" class="btn magic big">✨ ${T('Enter the universe', 'ادخل إلى الكون')}</button>
         <button type="button" class="btn ghost small" id="w-lang" lang="${other}">${t('btn.lang')}</button>
       </div>
     </form>
+    <footer class="home-foot">${signatureHTML('big')}</footer>
   </div>`;
   const pick = { age: p.age || null, role: p.role || null };
   const sync = () => {
@@ -197,13 +199,19 @@ function showHome() {
     <section class="tiles">
       ${GAMES.map((g, i) => tileHTML(g, i)).join('')}
     </section>
+    <h2 class="section-title display">✨ ${T('Challenges & rewards', 'التحديات والجوائز')}</h2>
+    <section class="features">
+      ${dailyCardHTML()}
+      ${boardCardHTML()}
+      ${certificatesHTML()}
+    </section>
     <h2 class="section-title display" id="reviews-title" hidden>💬 ${T('What players say', 'آراء اللاعبين')}</h2>
     <section class="reviews glass" id="reviews" hidden aria-labelledby="reviews-title"></section>
     <section class="rate-cta glass">
       <div><h3 class="display">⭐ ${T('Tell us what you think!', 'أخبرنا برأيك!')}</h3><p>${T('Answer a few quick questions and rate the games with stars.', 'أجب عن أسئلة سريعة وقيّم الألعاب بالنجوم.')}</p></div>
       <button class="btn mint" id="h-rate2">${store.rated ? T('Rate again', 'قيّم مرة أخرى') : T('Rate the game', 'قيّم اللعبة')}</button>
     </section>
-    <p class="home-foot">${t('home.footer')}</p>
+    <footer class="home-foot">${signatureHTML('big')}<p>${t('home.footer')}</p></footer>
   </div>`;
 
   document.querySelectorAll('.tile').forEach(tile => tile.onclick = ev => openGame(tile.dataset.id, ev));
@@ -213,6 +221,9 @@ function showHome() {
   $('#h-ach').onclick = showAchievements;
   $('#h-profile').onclick = () => go('#/welcome');
   $('#h-rate').onclick = $('#h-rate2').onclick = () => { sfx('click'); go('#/rate'); };
+  $('#f-daily')?.addEventListener('click', ev => { const p = dailyPick(); sfx('click'); wipeTo(`#/p/${p.id}/${p.level}`, p.id, ev); });
+  $('#f-board').onclick = () => { sfx('click'); showBoard(); };
+  document.querySelectorAll('[data-cert]').forEach(b => b.onclick = () => { sfx('click'); showCertificate(b.dataset.cert); });
   loadReviews();
 }
 
@@ -251,6 +262,7 @@ function showGame(id, levelIndex) {
   $('#g-back').onclick = () => go('#/');
   $('#g-restart').onclick = () => { sfx('click'); startLevel(id, levelIndex, (session?.attempt || 1) + 1); };
   $('#g-help').onclick = () => showGameIntro(id, levelIndex);
+  wireTeacher();
 
   if (!store.played[id]) { store.played[id] = true; store.save(); checkAchievements(); }
   startLevel(id, levelIndex, 1);
@@ -298,8 +310,52 @@ function showGameIntro(id, levelIndex) {
   };
 }
 
+// Teacher mode: bigger equations and readouts for the class screen, plus pause and slow motion.
+function wireTeacher() {
+  const on = !!store.settings.teacher;
+  document.body.classList.toggle('teacher', on);
+  stage.paused = false;
+  stage.speed = on ? (store.settings.speed || 1) : 1;
+  const teach = $('#g-teach'), pause = $('#g-pause'), speed = $('#g-speed');
+  teach.classList.toggle('on', on);
+  teach.title = teach.ariaLabel = on ? T('Teacher mode: on', 'وضع المعلم: مفعّل') : T('Teacher mode', 'وضع المعلم');
+  pause.textContent = '⏸';
+  pause.title = T('Pause', 'إيقاف مؤقت');
+  speed.textContent = stage.speed === 1 ? '1×' : '½×';
+  speed.title = T('Slow motion', 'حركة بطيئة');
+  teach.onclick = () => {
+    store.settings.teacher = !store.settings.teacher;
+    store.save();
+    sfx('click');
+    wireTeacher();
+    stage.resize?.();
+    showToast(store.settings.teacher ? '👩‍🏫' : '🎮', store.settings.teacher ? T('Teacher mode on', 'وضع المعلم مفعّل') : T('Teacher mode off', 'وضع المعلم متوقف'),
+      store.settings.teacher ? T('Bigger equations, pause and slow motion', 'معادلات أكبر، وإيقاف مؤقت، وحركة بطيئة') : '');
+  };
+  pause.onclick = () => { stage.paused = !stage.paused; pause.textContent = stage.paused ? '▶' : '⏸'; pause.classList.toggle('on', stage.paused); sfx('click'); };
+  speed.onclick = () => {
+    store.settings.speed = stage.speed === 1 ? 0.5 : 1;
+    store.save();
+    stage.speed = store.settings.speed;
+    speed.textContent = stage.speed === 1 ? '1×' : '½×';
+    speed.classList.toggle('on', stage.speed !== 1);
+    sfx('click');
+  };
+  speed.classList.toggle('on', stage.speed !== 1);
+}
+
+function showToast(icon, title, sub = '') {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span class="ic">${icon}</span><div>${esc(title)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+  $('#toast-root').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
 function startLevel(id, levelIndex, attempt) {
   closeModal();
+  track('start', { game: id, level: levelIndex });
+  if (stage.paused) { stage.paused = false; $('#g-pause').textContent = '⏸'; $('#g-pause').classList.remove('on'); }
   const mod = MODULES[id];
   $('#g-controls').innerHTML = '';
   $('#g-vars').innerHTML = '';
@@ -410,6 +466,7 @@ function makeApi(s) {
     win(stars) {
       if (s.ended || session !== s) return;
       s.ended = true;
+      track('win', { game: s.id, level: s.levelIndex, stars });
       sfx('win');
       this.banner(T('Success!', 'نجحت!'), false, 900);
       setTimeout(() => { if (session === s) showResult(s, stars); }, 1000);
@@ -417,6 +474,7 @@ function makeApi(s) {
     lose(msg) {
       if (s.ended || session !== s) return;
       s.ended = true;
+      track('fail', { game: s.id, level: s.levelIndex });
       sfx('lose');
       this.banner(T('Oops!', 'أوه!'), true, 900);
       setTimeout(() => { if (session === s) showLose(s, msg); }, 1000);
@@ -438,9 +496,13 @@ function showResult(s, stars) {
   const allCrystals = GAMES.every(x => isGameComplete(x.id, MODULES[x.id].levels.length));
   const wins = Object.values(store.stars).flat().filter(x => x > 0).length;
   const nudge = !store.rated && !store.ratePrompted && (wins >= 3 || nowComplete);
+  const dailyDone = checkDaily(id, levelIndex);
+  syncBoard();
 
   const body = `
-    ${!wasComplete && nowComplete ? `<div class="crystal-win">${crystalSVG(CRYSTAL_COLORS[g.crystal], '')}<h3 style="margin:4px 0">${t('res.crystal')}</h3></div>` : ''}
+    ${dailyDone ? `<div class="daily-win">📅 ${T('Daily challenge complete!', 'أنجزت تحدي اليوم!')} <b>🔥 ${streak()}</b> <small>${T('days in a row', 'يوم متتالٍ')}</small></div>` : ''}
+    ${!wasComplete && nowComplete ? `<div class="crystal-win">${crystalSVG(CRYSTAL_COLORS[g.crystal], '')}<h3 style="margin:4px 0">${t('res.crystal')}</h3>
+      <button class="btn magic small" id="r-cert">🎓 ${T('Get your certificate', 'احصل على شهادتك')}</button></div>` : ''}
     <h2>${t('res.win')}</h2>
     <div class="big-stars">${[0, 1, 2].map(i => `<span class="${i < stars ? 'on' : ''}" style="animation-delay:${.15 + i * .2}s">★</span>`).join('')}</div>
     <div class="learn-card"><h4>💡 ${t('res.learned')}</h4><p>${L(lv.learn)}</p></div>
@@ -456,6 +518,7 @@ function showResult(s, stars) {
   if (q) wireQuiz(m, q, `${id}:${levelIndex}`);
   if (nudge) { store.ratePrompted = true; store.save(); }
   m.querySelector('#r-rate')?.addEventListener('click', () => go('#/rate'));
+  m.querySelector('#r-cert')?.addEventListener('click', () => showCertificate(id));
   m.querySelector('#r-next')?.addEventListener('click', ev => { closeModal(); wipeTo(`#/p/${id}/${levelIndex + 1}`, id, ev); });
   m.querySelector('#r-replay').onclick = () => startLevel(id, levelIndex, 1);
   m.querySelector('#r-levels').onclick = () => showGameIntro(id, hasNext ? levelIndex + 1 : levelIndex);
@@ -464,7 +527,9 @@ function showResult(s, stars) {
     store.endingSeen = true;
     store.save();
     m.querySelector('.actions').insertAdjacentHTML('beforebegin',
-      `<div class="crystal-win" style="margin-top:12px"><h3>👑 ${t('res.universe')}</h3><p style="margin:0">${t('ending.text')}</p></div>`);
+      `<div class="crystal-win" style="margin-top:12px"><h3>👑 ${t('res.universe')}</h3><p style="margin:0">${t('ending.text')}</p>
+        <button class="btn magic small" id="r-grand" style="margin-top:8px">👑 ${T('Grand certificate', 'الشهادة الكبرى')}</button></div>`);
+    m.querySelector('#r-grand').onclick = () => showCertificate('all');
   }
 }
 
@@ -731,8 +796,11 @@ function checkAchievements() {
 }
 
 // ---------------- boot ----------------
+initExtras({ MODULES, openModal, closeModal, go, sfx });
 applyDir();
 route();
 flushPending();
+trackVisit();
+syncBoard();
 window.__booted = true;
 document.getElementById('boot-error').hidden = true;

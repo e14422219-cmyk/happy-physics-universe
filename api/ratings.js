@@ -1,54 +1,24 @@
-// Vercel serverless function: stores ratings in Upstash Redis and lists them for the owner.
-//   POST /api/ratings               → save one rating (anyone playing the game); the device is read from the request
-//   GET  /api/ratings?view=public   → anonymous summary shown inside the game (no names, no devices)
-//   GET  /api/ratings               → list all ratings; needs header x-admin-key = ADMIN_KEY
-//   POST /api/ratings?action=hide   → owner hides/shows a rating in the public summary (x-admin-key, body {id, hidden})
-// Environment (Vercel → Project → Settings → Environment Variables):
-//   KV_REST_API_URL / KV_REST_API_TOKEN  (added automatically when an Upstash Redis store is connected;
-//                                         UPSTASH_REDIS_REST_URL / _TOKEN also work)
-//   ADMIN_KEY                            (a password you choose for the private ratings page)
+// Ratings, stored in Upstash Redis.
+//   POST /api/ratings                 → save one rating (anyone playing); the device is read from the request
+//   GET  /api/ratings?view=public     → anonymous summary shown inside the game (no names, no devices)
+//   GET  /api/ratings                 → all ratings for the owner (header x-admin-key = ADMIN_KEY)
+//   POST /api/ratings?action=hide     → owner hides/shows a rating in the game   (body {id, hidden})
+//   POST /api/ratings?action=delete   → owner deletes a rating permanently       (body {id})
+// Environment: KV_REST_API_URL / KV_REST_API_TOKEN (added when Upstash Redis is connected), ADMIN_KEY,
+// and optionally TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID for an alert on every new rating.
 const crypto = require('crypto');
+const { store, redis, pipeline, text, bodyOf, isAdmin, telegram, GAMES, ROLES, QUESTIONS, dayKey } = require('./_db');
 
 const LIST = 'hpu:ratings';
 const HIDDEN = 'hpu:hidden';
 const MAX_KEEP = 10000;
-const ROLES = ['student', 'teacher', 'employee', 'parent', 'other'];
-const QUESTIONS = ['fun', 'learn', 'easy', 'look', 'recommend'];
-const GAMES = ['bird', 'water', 'magnet', 'circuit', 'light', 'energy'];
 
-// Vercel may add a custom prefix to the variable names (e.g. STORAGE_KV_REST_API_URL),
-// so look for any variable that ends with the expected name.
-function envEnding(...suffixes) {
-  for (const s of suffixes) if (process.env[s]) return process.env[s];
-  const keys = Object.keys(process.env);
-  for (const s of suffixes) {
-    const k = keys.find((key) => key.endsWith('_' + s) && process.env[key]);
-    if (k) return process.env[k];
-  }
-  return '';
-}
-
-function store() {
-  const url = envEnding('KV_REST_API_URL', 'UPSTASH_REDIS_REST_URL');
-  const token = envEnding('KV_REST_API_TOKEN', 'UPSTASH_REDIS_REST_TOKEN');
-  return url && token ? { url, token } : null;
-}
-
-async function redis(db, args) {
-  const r = await fetch(db.url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${db.token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(args)
-  });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error);
-  return j.result;
-}
-
-const text = (v, max) => (typeof v === 'string' ? v.trim().replace(/[\u0000-\u001f]/g, ' ').slice(0, max) : '');
+const ROLE_AR = { student: 'طالب', teacher: 'معلم / دكتور', employee: 'موظف', parent: 'ولي أمر', other: 'أخرى' };
+const GAME_AR = { bird: 'الطائر السعيد', water: 'أنقذ الملك', magnet: 'بطل المغناطيس', circuit: 'مغامرة الدوائر', light: 'متاهة الضوء', energy: 'راكب الطاقة' };
+const OS_AR = { iPhone: 'آيفون', iPad: 'آيباد', Android: 'أندرويد', Windows: 'ويندوز', Mac: 'ماك', ChromeOS: 'كروم بوك', Linux: 'لينكس', other: 'جهاز آخر' };
 
 function clean(b) {
-  if (!b || typeof b !== 'object') return null;
+  if (!b) return null;
   const name = text(b.name, 40);
   const age = Number.isInteger(b.age) && b.age >= 3 && b.age <= 99 ? b.age : null;
   const role = ROLES.includes(b.role) ? b.role : null;
@@ -94,19 +64,14 @@ function device(ua, extra) {
   return { type, os, osVer, browser: hit ? hit[1] : 'other', model, screen, ua: ua.slice(0, 300) };
 }
 
-function sameKey(a, b) {
-  const x = Buffer.from(String(a || '')), y = Buffer.from(String(b || ''));
-  return x.length === y.length && crypto.timingSafeEqual(x, y);
-}
-
 const idOf = r => r.id || r.at;
 const avg = (list, f) => list.length ? list.reduce((a, r) => a + f(r), 0) / list.length : 0;
 const score = r => avg(QUESTIONS, q => (r.answers && r.answers[q]) || 0);
 const round1 = v => Math.round(v * 10) / 10;
 
-async function readAll(db) {
+async function readRaw(db) {
   const rows = await redis(db, ['LRANGE', LIST, '0', '-1']);
-  return (rows || []).map(s => { try { return JSON.parse(s); } catch { return null; } }).filter(Boolean);
+  return (rows || []).map(raw => { try { return { raw, r: JSON.parse(raw) }; } catch { return null; } }).filter(Boolean);
 }
 
 // What the game shows to everyone: averages and recent reviews, never names or devices.
@@ -124,16 +89,17 @@ function publicSummary(all, hidden) {
   };
 }
 
-function bodyOf(req) {
-  let body = req.body;
-  if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = null; } }
-  return body;
-}
-
-function isAdmin(req, res) {
-  if (!process.env.ADMIN_KEY) { res.status(503).json({ error: 'admin-key-not-configured' }); return false; }
-  if (!sameKey(req.headers['x-admin-key'], process.env.ADMIN_KEY)) { res.status(401).json({ error: 'wrong-key' }); return false; }
-  return true;
+function alertText(e) {
+  const stars = '⭐'.repeat(Math.round(score(e)));
+  const d = e.device || {};
+  return [
+    '🌟 تقييم جديد في كون الفيزياء السعيد',
+    `👤 ${e.name} • العمر ${e.age > 16 ? '16+' : e.age} • ${ROLE_AR[e.role] || e.role}`,
+    `${stars} (${round1(score(e))} من 5)`,
+    e.favorite ? `🏅 المفضّلة: ${GAME_AR[e.favorite]}` : '',
+    e.comment ? `💬 ${e.comment}` : '',
+    `📱 ${OS_AR[d.os] || d.os || ''} ${d.osVer || ''} • ${d.browser === 'other' ? '' : d.browser || ''}`.trim()
+  ].filter(Boolean).join('\n');
 }
 
 module.exports = async (req, res) => {
@@ -143,12 +109,18 @@ module.exports = async (req, res) => {
   const q = req.query || {};
 
   try {
-    if (req.method === 'POST' && q.action === 'hide') {
+    if (req.method === 'POST' && (q.action === 'hide' || q.action === 'delete')) {
       if (!isAdmin(req, res)) return;
       const b = bodyOf(req) || {};
       const id = text(b.id, 40);
       if (!id) return res.status(400).json({ error: 'invalid-id' });
-      await redis(db, [b.hidden ? 'SADD' : 'SREM', HIDDEN, id]);
+      if (q.action === 'hide') {
+        await redis(db, [b.hidden ? 'SADD' : 'SREM', HIDDEN, id]);
+        return res.status(200).json({ ok: true });
+      }
+      const hit = (await readRaw(db)).find(x => idOf(x.r) === id);
+      if (!hit) return res.status(404).json({ error: 'not-found' });
+      await pipeline(db, [['LREM', LIST, '1', hit.raw], ['SREM', HIDDEN, id]]);
       return res.status(200).json({ ok: true });
     }
 
@@ -157,21 +129,25 @@ module.exports = async (req, res) => {
       const entry = clean(body);
       if (!entry) return res.status(400).json({ error: 'invalid-rating' });
       entry.device = device(req.headers['user-agent'], body.device);
-      await redis(db, ['LPUSH', LIST, JSON.stringify(entry)]);
-      await redis(db, ['LTRIM', LIST, '0', String(MAX_KEEP - 1)]);
+      await pipeline(db, [
+        ['LPUSH', LIST, JSON.stringify(entry)],
+        ['LTRIM', LIST, '0', String(MAX_KEEP - 1)],
+        ['HINCRBY', 'hpu:days', `${dayKey()}:rating`, '1']
+      ]);
+      await telegram(alertText(entry));
       return res.status(201).json({ ok: true });
     }
 
     if (req.method === 'GET' && q.view === 'public') {
-      const [all, hidden] = await Promise.all([readAll(db), redis(db, ['SMEMBERS', HIDDEN])]);
+      const [rows, hidden] = await Promise.all([readRaw(db), redis(db, ['SMEMBERS', HIDDEN])]);
       res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=30, stale-while-revalidate=120');
-      return res.status(200).json(publicSummary(all, new Set(hidden || [])));
+      return res.status(200).json(publicSummary(rows.map(x => x.r), new Set(hidden || [])));
     }
 
     if (req.method === 'GET') {
       if (!isAdmin(req, res)) return;
-      const [ratings, hidden] = await Promise.all([readAll(db), redis(db, ['SMEMBERS', HIDDEN])]);
-      return res.status(200).json({ ratings: ratings.map(r => ({ ...r, id: idOf(r) })), hidden: hidden || [] });
+      const [rows, hidden] = await Promise.all([readRaw(db), redis(db, ['SMEMBERS', HIDDEN])]);
+      return res.status(200).json({ ratings: rows.map(x => ({ ...x.r, id: idOf(x.r) })), hidden: hidden || [] });
     }
 
     res.setHeader('Allow', 'GET, POST');

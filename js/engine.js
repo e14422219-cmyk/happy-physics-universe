@@ -79,7 +79,8 @@ export class Stage {
   frame(dt) {
     const { ctx, scene } = this;
     if (!scene) return;
-    scene.update(dt);
+    // teacher mode: pause or slow motion for explaining on a big screen
+    if (!this.paused) scene.update(dt * (this.speed || 1));
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const cw = this.canvas.width, ch = this.canvas.height, mid = (this.oy + H * this.scale / 2) * this.dpr;
     ctx.fillStyle = scene.letterbox || '#1b1446';

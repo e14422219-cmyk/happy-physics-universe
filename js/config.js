@@ -127,3 +127,23 @@ export const ACHIEVEMENTS = [
   { id: 'all_crystals', icon: '👑', name: { en: 'Universe Guardian', ar: 'حامي الكون' }, desc: { en: 'Restore all six crystals', ar: 'استعد البلّورات الست' } },
   { id: 'all_stars', icon: '🏆', name: { en: 'Physics Legend', ar: 'أسطورة الفيزياء' }, desc: { en: 'Get every star in the universe', ar: 'احصل على كل النجوم في الكون' } }
 ];
+
+// Who prepared the universe: shown with a signature on the home page, certificates and the admin page.
+export const CREDIT = { ar: 'الياس بن صالح الحميد', en: 'Elias bin Saleh Al-Humaid' };
+
+// Heroes board nicknames: players pick an adjective + a creature (no typed names, safe for kids).
+// Keep 16 of each: the server checks the indexes.
+export const NICK_NOUN = [
+  { icon: '🦅', ar: 'الصقر', en: 'Falcon' }, { icon: '🐉', ar: 'التنين', en: 'Dragon' }, { icon: '⭐', ar: 'النجم', en: 'Star' },
+  { icon: '🚀', ar: 'الصاروخ', en: 'Rocket' }, { icon: '🤖', ar: 'الروبوت', en: 'Robot' }, { icon: '🦁', ar: 'الأسد', en: 'Lion' },
+  { icon: '🐬', ar: 'الدلفين', en: 'Dolphin' }, { icon: '🦊', ar: 'الثعلب', en: 'Fox' }, { icon: '🐯', ar: 'النمر', en: 'Tiger' },
+  { icon: '🪐', ar: 'الكوكب', en: 'Planet' }, { icon: '☄️', ar: 'المذنّب', en: 'Comet' }, { icon: '⚡', ar: 'البرق', en: 'Lightning' },
+  { icon: '🐧', ar: 'البطريق', en: 'Penguin' }, { icon: '🐳', ar: 'الحوت', en: 'Whale' }, { icon: '🐆', ar: 'الفهد', en: 'Cheetah' },
+  { icon: '🦉', ar: 'البوم', en: 'Owl' }
+];
+export const NICK_ADJ = [
+  { ar: 'الذهبي', en: 'Golden' }, { ar: 'الشجاع', en: 'Brave' }, { ar: 'اللامع', en: 'Shiny' }, { ar: 'الخارق', en: 'Super' },
+  { ar: 'السريع', en: 'Swift' }, { ar: 'الذكي', en: 'Clever' }, { ar: 'المضيء', en: 'Glowing' }, { ar: 'الطائر', en: 'Flying' },
+  { ar: 'العبقري', en: 'Genius' }, { ar: 'الكوني', en: 'Cosmic' }, { ar: 'الفضي', en: 'Silver' }, { ar: 'الناري', en: 'Fiery' },
+  { ar: 'الثلجي', en: 'Icy' }, { ar: 'السعيد', en: 'Happy' }, { ar: 'المغامر', en: 'Daring' }, { ar: 'الأسطوري', en: 'Legendary' }
+];
