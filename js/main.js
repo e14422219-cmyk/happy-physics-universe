@@ -6,6 +6,9 @@ import { gameIcon } from './icons.js';
 import { Stage } from './engine.js';
 import { sfx } from './audio.js';
 import { startSky } from './sky.js';
+import { playMusic, stopMusic, refreshMusic, musicOn } from './music.js';
+import { BOSSES, BOSS_HP, monsterSVG, bossHUD, setBossHP, bossSay, bossHit, randomTaunt } from './boss.js';
+import { CARDS, cardHTML } from './cards.js';
 import { initExtras, track, trackVisit, signatureHTML, showBoard, syncBoard, dailyCardHTML, dailyPick, checkDaily, streak, boardCardHTML, certificatesHTML, showCertificate, SITE, FULL } from './extras.js';
 
 import bird from './games/bird.js';
@@ -24,7 +27,7 @@ const RATINGS_API = '/api/ratings';
 
 const stage = new Stage($('#stage'));
 const sky = startSky($('#sky'));
-window.hpu = { stage };   // handy for debugging from the console
+window.hpu = { stage, get session() { return session; }, api: () => session && makeApi(session) };   // handy for debugging from the console
 let session = null;
 let introNext = false;   // show the game's explanation as soon as its screen opens
 
@@ -40,6 +43,7 @@ function route() {
   if (parts[0] === 'welcome') return showWelcome();
   if (parts[0] === 'rate') return showRate();
   if (parts[0] === 'g' && MODULES[parts[1]]) { introNext = true; return go(`#/p/${parts[1]}/${nextLevel(parts[1])}`); }
+  if (parts[0] === 'p' && MODULES[parts[1]] && parts[2] === 'boss') return showBoss(parts[1]);
   if (parts[0] === 'p' && MODULES[parts[1]]) {
     const i = parseInt(parts[2], 10) || 0;
     if (i < MODULES[parts[1]].levels.length && isUnlocked(parts[1], i)) return showGame(parts[1], i);
@@ -86,7 +90,7 @@ function wipeTo(hash, gameId, ev) {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
   sky.pause(id === 'screen-game');
-  if (id !== 'screen-game') { stage.stop(); session = null; }
+  if (id !== 'screen-game') { stage.stop(); session = null; stopMusic(); $('#boss-hud')?.remove(); }
   window.scrollTo(0, 0);
 }
 
@@ -178,6 +182,7 @@ function showHome() {
       <span class="pill" title="${t('home.crystals')}"><span class="crystal-row">${crystalsHTML()}</span></span>
       <span class="pill">⭐ ${totalStars()} / ${maxStars()}</span>
       <button class="icon-btn" id="h-rate" aria-label="${T('Rate the game', 'قيّم اللعبة')}" title="${T('Rate the game', 'قيّم اللعبة')}">⭐</button>
+      <button class="icon-btn" id="h-album" aria-label="${T('Scientist cards', 'بطاقات العلماء')}" title="${T('Scientist cards', 'بطاقات العلماء')}">🃏</button>
       <button class="icon-btn" id="h-ach" aria-label="${t('btn.achievements')}" title="${t('btn.achievements')}">🏆</button>
       <button class="icon-btn" id="h-story" aria-label="${t('btn.story')}" title="${t('btn.story')}">📖</button>
       <button class="icon-btn" id="h-profile" aria-label="${T('My profile', 'ملفي')}" title="${T('My profile', 'ملفي')}">👤</button>
@@ -205,6 +210,8 @@ function showHome() {
       ${dailyCardHTML()}
       ${boardCardHTML()}
       ${certificatesHTML()}
+      ${albumCardHTML()}
+      ${bossesCardHTML()}
     </section>
     <h2 class="section-title display" id="reviews-title" hidden>💬 ${T('What players say', 'آراء اللاعبين')}</h2>
     <section class="reviews glass" id="reviews" hidden aria-labelledby="reviews-title"></section>
@@ -224,8 +231,32 @@ function showHome() {
   $('#h-rate').onclick = $('#h-rate2').onclick = () => { sfx('click'); go('#/rate'); };
   $('#f-daily')?.addEventListener('click', ev => { const p = dailyPick(); sfx('click'); wipeTo(`#/p/${p.id}/${p.level}`, p.id, ev); });
   $('#f-board').onclick = () => { sfx('click'); showBoard(); };
+  $('#h-album').onclick = $('#f-album').onclick = () => { sfx('click'); showAlbum(); };
+  document.querySelectorAll('[data-boss-go]').forEach(b => b.onclick = ev => { sfx('zap'); wipeTo(`#/p/${b.dataset.bossGo}/boss`, b.dataset.bossGo, ev); });
   document.querySelectorAll('[data-cert]').forEach(b => b.onclick = () => { sfx('click'); showCertificate(b.dataset.cert); });
   loadReviews();
+}
+
+function albumCardHTML() {
+  const owned = CARDS.filter(c => cardState(c) !== 'locked');
+  const gold = owned.filter(c => cardState(c) === 'gold').length;
+  return `
+  <article class="feature album-card" style="--glow:#ffb84d">
+    <div class="feature-head"><span class="feature-ic">🃏</span><h3>${T('Scientist cards', 'بطاقات العلماء')}</h3><span class="streak" style="background:linear-gradient(135deg,#ffd36b,#ff9a3c)">${owned.length}/${CARDS.length}</span></div>
+    <div class="mini-cards">${CARDS.slice(0, 6).map(c => `<span class="mini-card ${cardState(c)}" title="${esc(cardState(c) === 'locked' ? '❓' : L(c.name))}">${cardState(c) === 'locked' ? '❓' : cardState(c) === 'gold' ? '🌟' : '⭐'}</span>`).join('')}</div>
+    <p class="feature-note">${owned.length ? T(`${gold} gold card(s). Beat bosses to turn cards gold!`, `لديك ${gold} بطاقة ذهبية. اهزم الزعماء لتصبح بطاقاتك ذهبية!`) : T('Finish a world to meet its scientist: Ibn al-Haytham, Galileo, Faraday…', 'أكمل عالمًا لتقابل عالِمه: ابن الهيثم، جاليليو، فاراداي…')}</p>
+    <button class="btn magic small" id="f-album">${T('Open album', 'افتح الألبوم')}</button>
+  </article>`;
+}
+
+function bossesCardHTML() {
+  const beaten = GAMES.filter(g => store.bosses?.[g.id]).length;
+  return `
+  <article class="feature bosses-card" style="--glow:#ff4f6d">
+    <div class="feature-head"><span class="feature-ic">👾</span><h3>${T('Boss fights', 'معارك الزعماء')}</h3><span class="streak">${beaten}/6</span></div>
+    <div class="boss-row">${GAMES.map(g => `<button class="boss-mini ${store.bosses?.[g.id] ? 'beaten' : ''}" data-boss-go="${g.id}" title="${esc(L(BOSSES[g.id].name))}" aria-label="${esc(L(BOSSES[g.id].name))}">${monsterSVG(g.id)}${store.bosses?.[g.id] ? '<b>🏆</b>' : ''}</button>`).join('')}</div>
+    <p class="feature-note">${T('Each world has a Glitch boss. Win 3 rounds to fix it!', 'لكل عالم زعيم «غليتش». اربح 3 جولات لتصلحه!')}</p>
+  </article>`;
 }
 
 // Poki-style tile: the art only; the name shows on hover/focus and is read by screen readers.
@@ -239,6 +270,7 @@ function tileHTML(g, i) {
     ${gameIcon(g.id)}
     ${stars ? `<span class="tile-badge">★ ${stars}/${n * 3}</span>` : ''}
     ${done ? '<span class="tile-crystal">💎</span>' : ''}
+    ${store.bosses?.[g.id] ? '<span class="tile-boss" title="👾🏆">👾</span>' : ''}
     <span class="tile-name">${esc(L(g.title))}</span>
   </button>`;
 }
@@ -250,23 +282,27 @@ function openGame(id, ev) {
 }
 
 // ---------------- game screen ----------------
-function showGame(id, levelIndex) {
+function showGame(id, levelIndex, boss = null) {
   showScreen('screen-game');
   applyDir();
   const g = meta(id), mod = MODULES[id];
-  const lv = mod.levels[levelIndex];
-  $('#g-title').textContent = L(g.title);
-  $('#g-sub').textContent = `${t('lv.level')} ${levelIndex + 1}: ${L(lv.name)} • ${L(g.lesson)}`;
+  $('#g-title').textContent = boss ? `👾 ${L(BOSSES[id].name)}` : L(g.title);
+  subtitle(id, levelIndex, boss);
   $('#g-formulas').innerHTML = mod.formulas.map(f => `<div class="formula"><div class="expr">${f.expr}</div><div class="lbl">${L(f.label)}</div></div>`).join('');
   const other = getLang() === 'ar' ? 'en' : 'ar';
   $('#g-terms').innerHTML = mod.terms.map(tm => `<span class="term">${L(tm)} <small>· ${tm[other]}</small></span>`).join('');
   $('#g-back').onclick = () => go('#/');
-  $('#g-restart').onclick = () => { sfx('click'); startLevel(id, levelIndex, (session?.attempt || 1) + 1); };
-  $('#g-help').onclick = () => showGameIntro(id, levelIndex);
+  $('#g-restart').onclick = () => { sfx('click'); startLevel(id, session?.levelIndex ?? levelIndex, (session?.attempt || 1) + 1, session?.boss || null); };
+  $('#g-help').onclick = () => boss ? showBossIntro(id) : showGameIntro(id, levelIndex);
   wireTeacher();
+  wireMusic();
+  playMusic(boss ? 'boss' : id);
+  $('#boss-hud')?.remove();
+  if (boss) $('.stage-wrap').insertAdjacentHTML('beforeend', bossHUD(id, boss.hp));
 
   if (!store.played[id]) { store.played[id] = true; store.save(); checkAchievements(); }
-  startLevel(id, levelIndex, 1);
+  startLevel(id, levelIndex, 1, boss);
+  if (boss) { introNext = false; showBossIntro(id); return; }
   if (introNext || !store.tutorialSeen[id]) {
     introNext = false;
     store.tutorialSeen[id] = true;
@@ -274,6 +310,136 @@ function showGame(id, levelIndex) {
     showGameIntro(id, levelIndex);
   }
 }
+
+function subtitle(id, levelIndex, boss) {
+  const g = meta(id), lv = MODULES[id].levels[levelIndex];
+  $('#g-sub').textContent = boss
+    ? `${T('Boss fight', 'معركة الزعيم')} • ${T('Round', 'الجولة')} ${BOSS_HP - boss.hp + 1}/${BOSS_HP} • ${L(lv.name)}`
+    : `${t('lv.level')} ${levelIndex + 1}: ${L(lv.name)} • ${L(g.lesson)}`;
+}
+
+function wireMusic() {
+  const b = $('#g-music');
+  if (!b) return;
+  const paint = () => { b.textContent = musicOn() ? '🎵' : '🔇'; b.classList.toggle('on', musicOn()); b.title = T('Music', 'الموسيقى'); };
+  paint();
+  b.onclick = () => {
+    if (!store.settings.sound) { store.settings.sound = true; store.settings.music = true; }
+    else store.settings.music = store.settings.music === false;
+    store.save();
+    refreshMusic();
+    paint();
+    sfx('click');
+  };
+}
+
+// ---------------- boss fights ----------------
+function showBoss(id) {
+  const b = BOSSES[id];
+  showGame(id, b.rounds[0], { id, hp: BOSS_HP });
+}
+
+function showBossIntro(id) {
+  const b = BOSSES[id];
+  const m = openModal(`
+    <div class="boss-intro" style="--boss:${b.color};--boss-dark:${b.dark}">
+      ${monsterSVG(id, 'big')}
+      <h2>👾 ${L(b.name)}</h2>
+      <p class="boss-quote">«${esc(randomTaunt(id))}»</p>
+      <div class="learn-card"><p>⚔️ ${T('Win 3 rounds to drain its 3 hearts. Each round is a harder level of this world.', 'اربح 3 جولات لتُفرغ قلوبه الثلاثة. كل جولة مرحلة أصعب من هذا العالم.')}</p><p>💡 ${L(b.lesson)}</p></div>
+      <div class="actions"><button class="btn coral big" id="b-go">⚔️ ${T('Fight!', 'ابدأ القتال!')}</button></div>
+    </div>`, { closable: true });
+  m.querySelector('#b-go').onclick = () => { closeModal(); sfx('zap'); stage.shake(6, .3); bossSay(id, randomTaunt(id)); };
+}
+
+function bossRoundWin(s) {
+  const b = s.boss, boss = BOSSES[s.id];
+  b.hp -= 1;
+  setBossHP(b.hp);
+  bossHit();
+  stage.shake(12, .5);
+  stage.burst(880, 110, { n: 40, colors: [boss.color, '#ffffff', '#ffd36b'], speed: 520 });
+  vibrate([40, 30, 90]);
+  sfx('hit');
+  if (b.hp > 0) {
+    makeApi(s).banner(T(`💥 Hit! ${b.hp} left`, `💥 ضربة! باقي ${b.hp}`), false, 1400);
+    bossSay(s.id, randomTaunt(s.id), 2000);
+    setTimeout(() => {
+      if (session !== s) return;
+      const next = boss.rounds[BOSS_HP - b.hp] ?? boss.rounds[boss.rounds.length - 1];
+      subtitle(s.id, next, b);
+      startLevel(s.id, next, 1, b);
+    }, 1600);
+  } else {
+    setTimeout(() => { if (session === s) bossDefeated(s); }, 900);
+  }
+}
+
+function bossDefeated(s) {
+  const id = s.id, b = BOSSES[id];
+  const first = !store.bosses?.[id];
+  store.bosses = { ...(store.bosses || {}), [id]: true };
+  store.save();
+  stopMusic();
+  sfx('win');
+  stage.confetti();
+  stage.flash('#ffffff', .6);
+  vibrate([60, 40, 60, 40, 160]);
+  const worldDone = isGameComplete(id, MODULES[id].levels.length);
+  const card = CARDS.find(c => c.world === id);
+  const m = openModal(`
+    <div class="boss-intro" style="--boss:${b.color};--boss-dark:${b.dark}">
+      ${monsterSVG(id, 'big defeated')}
+      <h2>🏆 ${T('Boss defeated!', 'هزمت الزعيم!')}</h2>
+      <p class="lesson-line">${L(b.name)} ${T('is fixed and the world is safe again.', 'تصلّح، والعالم آمن من جديد.')}</p>
+      ${worldDone
+        ? `<div class="card-reveal"><p><b>✨ ${T(`${first ? 'Your' : 'Your'} card is now GOLD!`, 'صارت بطاقة العالِم ذهبية!')}</b></p>${cardHTML(card, 'gold')}</div>`
+        : `<div class="learn-card"><p>🃏 ${T('Finish all five levels of this world to unlock its scientist card — it will be gold!', 'أكمل المراحل الخمس لهذا العالم لتفتح بطاقة العالِم، وستكون ذهبية!')}</p></div>`}
+      <div class="actions">
+        ${worldDone ? `<button class="btn magic" id="d-album">🃏 ${T('Card album', 'ألبوم البطاقات')}</button>` : ''}
+        <button class="btn mint" id="d-home">🏠 ${t('btn.home')}</button>
+        <button class="btn ghost" id="d-again">↻ ${T('Fight again', 'قاتل مرة أخرى')}</button>
+      </div>
+    </div>`);
+  checkAchievements();
+  m.querySelector('#d-album')?.addEventListener('click', showAlbum);
+  m.querySelector('#d-home').onclick = () => go('#/');
+  m.querySelector('#d-again').onclick = () => { closeModal(); showBoss(id); };
+}
+
+// ---------------- scientist cards ----------------
+function cardState(c) {
+  if (c.world === 'all') {
+    if (!GAMES.every(g => isGameComplete(g.id, MODULES[g.id].levels.length))) return 'locked';
+    return GAMES.every(g => store.bosses?.[g.id]) ? 'gold' : 'normal';
+  }
+  if (!isGameComplete(c.world, MODULES[c.world].levels.length)) return 'locked';
+  return store.bosses?.[c.world] ? 'gold' : 'normal';
+}
+
+function showAlbum() {
+  const owned = CARDS.filter(c => cardState(c) !== 'locked').length;
+  const m = openModal(`
+    <h2>🃏 ${T('Scientist cards', 'بطاقات العلماء')}</h2>
+    <p class="lesson-line">${T(`${owned} of ${CARDS.length} collected • beat a world's boss to make its card gold`, `جمعت ${owned} من ${CARDS.length} • اهزم زعيم العالم لتصبح بطاقته ذهبية`)}</p>
+    <div class="album">${CARDS.map(c => cardHTML(c, cardState(c))).join('')}</div>`, { closable: true });
+  m.closest('.modal').classList.add('wide');
+  m.querySelectorAll('.sci-card:not(.locked)').forEach(el => el.onclick = () => { sfx('click'); showCard(el.dataset.card); });
+}
+
+function showCard(cardId) {
+  const c = CARDS.find(x => x.id === cardId);
+  const m = openModal(`
+    <div class="card-view">${cardHTML(c, cardState(c), { big: true })}</div>
+    <div class="actions">
+      ${c.world !== 'all' && !store.bosses?.[c.world] ? `<button class="btn coral" id="c-boss">👾 ${T('Fight the boss for gold', 'قاتل الزعيم لتصبح ذهبية')}</button>` : ''}
+      <button class="btn ghost" id="c-back">🃏 ${T('Back to album', 'رجوع للألبوم')}</button>
+    </div>`, { closable: true });
+  m.querySelector('#c-back').onclick = showAlbum;
+  m.querySelector('#c-boss')?.addEventListener('click', () => { closeModal(); go(`#/p/${c.world}/boss`); });
+}
+
+function vibrate(p) { try { navigator.vibrate?.(p); } catch { /* not supported */ } }
 
 // The game's explanation, shown right after tapping its tile: how to play, the levels, and Start.
 function showGameIntro(id, levelIndex) {
@@ -291,17 +457,20 @@ function showGameIntro(id, levelIndex) {
         return `<button class="level-chip ${i === levelIndex ? 'on' : ''} ${open ? '' : 'locked'}" data-i="${i}" title="${esc(L(lv.name))}" aria-label="${t('lv.level')} ${i + 1}: ${esc(L(lv.name))}">
           <span class="num">${open ? i + 1 : '🔒'}</span><span class="st">${'★'.repeat(s)}${'☆'.repeat(3 - s)}</span></button>`;
       }).join('')}
+      <button class="level-chip boss-chip ${store.bosses?.[id] ? 'beaten' : ''}" data-boss="1" title="${esc(L(BOSSES[id].name))}" aria-label="${T('Boss fight', 'معركة الزعيم')}: ${esc(L(BOSSES[id].name))}">
+        <span class="num">👾</span><span class="st">${store.bosses?.[id] ? '🏆' : T('Boss', 'الزعيم')}</span></button>
     </div>
     <div class="actions"><button class="btn mint big" id="t-ok">▶ ${t('btn.start')}</button></div>`, { closable: true });
+  m.querySelector('[data-boss]').onclick = () => { sfx('zap'); closeModal(); go(`#/p/${id}/boss`); };
   let chosen = levelIndex;
   const startBtn = m.querySelector('#t-ok');
   const label = () => { startBtn.textContent = `▶ ${t('lv.level')} ${chosen + 1}: ${L(mod.levels[chosen].name)}`; };
   label();
-  m.querySelectorAll('.level-chip').forEach(b => b.onclick = () => {
+  m.querySelectorAll('.level-chip:not(.boss-chip)').forEach(b => b.onclick = () => {
     const i = +b.dataset.i;
     if (!isUnlocked(id, i)) { sfx('bad'); return; }
     chosen = i;
-    m.querySelectorAll('.level-chip').forEach(x => x.classList.toggle('on', +x.dataset.i === i));
+    m.querySelectorAll('.level-chip:not(.boss-chip)').forEach(x => x.classList.toggle('on', +x.dataset.i === i));
     label();
     sfx('click');
   });
@@ -354,9 +523,9 @@ function showToast(icon, title, sub = '') {
   setTimeout(() => el.remove(), 3200);
 }
 
-function startLevel(id, levelIndex, attempt) {
+function startLevel(id, levelIndex, attempt, boss = null) {
   closeModal();
-  track('start', { game: id, level: levelIndex });
+  if (!boss) track('start', { game: id, level: levelIndex });
   if (stage.paused) { stage.paused = false; $('#g-pause').textContent = '⏸'; $('#g-pause').classList.remove('on'); }
   const mod = MODULES[id];
   $('#g-controls').innerHTML = '';
@@ -364,9 +533,18 @@ function startLevel(id, levelIndex, attempt) {
   $('#g-hint').textContent = '';
   $('#g-banner').className = 'stage-banner';
   $('#g-card').hidden = true;
-  session = { id, levelIndex, attempt, ended: false, varsAt: 0 };
+  session = { id, levelIndex, attempt, ended: false, varsAt: 0, boss };
   const api = makeApi(session);
   stage.start(mod.create(api, levelIndex));
+}
+
+// Small "juice" for the games' own sound cues: impacts shake the screen and buzz the phone.
+function juicySfx(name) {
+  sfx(name);
+  if (name === 'hit' || name === 'break') { stage.shake(name === 'break' ? 7 : 5, .28); vibrate(18); }
+  else if (name === 'zap') stage.shake(3, .2);
+  else if (name === 'launch') vibrate(10);
+  else if (name === 'pop' || name === 'ding') vibrate(8);
 }
 
 function makeApi(s) {
@@ -377,7 +555,7 @@ function makeApi(s) {
     level: mod.levels[s.levelIndex],
     levelIndex: s.levelIndex,
     attempt: s.attempt,
-    sfx,
+    sfx: juicySfx,
     setVars(rows, force = false) {
       const now = performance.now();
       if (!force && now - s.varsAt < 100) return;
@@ -468,6 +646,12 @@ function makeApi(s) {
     win(stars) {
       if (s.ended || session !== s) return;
       s.ended = true;
+      // juice: slow motion, confetti, a white flash and a happy buzz
+      stage.slowmo(.6);
+      stage.confetti();
+      stage.flash('#ffffff', .35);
+      vibrate([30, 40, 60]);
+      if (s.boss) { bossRoundWin(s); return; }
       track('win', { game: s.id, level: s.levelIndex, stars });
       sfx('win');
       this.banner(T('Success!', 'نجحت!'), false, 900);
@@ -476,7 +660,11 @@ function makeApi(s) {
     lose(msg) {
       if (s.ended || session !== s) return;
       s.ended = true;
-      track('fail', { game: s.id, level: s.levelIndex });
+      stage.shake(10, .45);
+      stage.flash('#ff4f6d', .25);
+      vibrate(140);
+      if (s.boss) bossSay(s.id, randomTaunt(s.id));
+      else track('fail', { game: s.id, level: s.levelIndex });
       sfx('lose');
       this.banner(T('Oops!', 'أوه!'), true, 900);
       setTimeout(() => { if (session === s) showLose(s, msg); }, 1000);
@@ -504,7 +692,11 @@ function showResult(s, stars) {
   const body = `
     ${dailyDone ? `<div class="daily-win">📅 ${T('Daily challenge complete!', 'أنجزت تحدي اليوم!')} <b>🔥 ${streak()}</b> <small>${T('days in a row', 'يوم متتالٍ')}</small></div>` : ''}
     ${!wasComplete && nowComplete ? `<div class="crystal-win">${crystalSVG(CRYSTAL_COLORS[g.crystal], '')}<h3 style="margin:4px 0">${t('res.crystal')}</h3>
-      <button class="btn magic small" id="r-cert">🎓 ${T('Get your certificate', 'احصل على شهادتك')}</button></div>` : ''}
+      <button class="btn magic small" id="r-cert">🎓 ${T('Get your certificate', 'احصل على شهادتك')}</button></div>
+      <div class="card-reveal"><p><b>🃏 ${T('New scientist card!', 'بطاقة عالِم جديدة!')}</b></p>
+        <button class="card-btn" id="r-card">${cardHTML(CARDS.find(c => c.world === id), store.bosses?.[id] ? 'gold' : 'normal')}</button>
+        ${store.bosses?.[id] ? '' : `<p class="boss-tease">👾 ${T(`The boss ${L(BOSSES[id].name)} is waiting! Beat it to make the card gold.`, `الزعيم «${L(BOSSES[id].name)}» ينتظرك! اهزمه لتصبح البطاقة ذهبية.`)}</p>
+        <button class="btn coral small" id="r-boss">⚔️ ${T('Fight the boss', 'قاتل الزعيم')}</button>`}</div>` : ''}
     <h2>${t('res.win')}</h2>
     <div class="big-stars">${[0, 1, 2].map(i => `<span class="${i < stars ? 'on' : ''}" style="animation-delay:${.15 + i * .2}s">★</span>`).join('')}</div>
     <div class="learn-card"><h4>💡 ${t('res.learned')}</h4><p>${L(lv.learn)}</p></div>
@@ -521,6 +713,8 @@ function showResult(s, stars) {
   if (nudge) { store.ratePrompted = true; store.save(); }
   m.querySelector('#r-rate')?.addEventListener('click', () => go('#/rate'));
   m.querySelector('#r-cert')?.addEventListener('click', () => showCertificate(id));
+  m.querySelector('#r-card')?.addEventListener('click', () => showCard(CARDS.find(c => c.world === id).id));
+  m.querySelector('#r-boss')?.addEventListener('click', () => { closeModal(); go(`#/p/${id}/boss`); });
   m.querySelector('#r-next')?.addEventListener('click', ev => { closeModal(); wipeTo(`#/p/${id}/${levelIndex + 1}`, id, ev); });
   m.querySelector('#r-replay').onclick = () => startLevel(id, levelIndex, 1);
   m.querySelector('#r-levels').onclick = () => showGameIntro(id, hasNext ? levelIndex + 1 : levelIndex);
@@ -530,8 +724,10 @@ function showResult(s, stars) {
     store.save();
     m.querySelector('.actions').insertAdjacentHTML('beforebegin',
       `<div class="crystal-win" style="margin-top:12px"><h3>👑 ${t('res.universe')}</h3><p style="margin:0">${t('ending.text')}</p>
-        <button class="btn magic small" id="r-grand" style="margin-top:8px">👑 ${T('Grand certificate', 'الشهادة الكبرى')}</button></div>`);
+        <button class="btn magic small" id="r-grand" style="margin-top:8px">👑 ${T('Grand certificate', 'الشهادة الكبرى')}</button>
+        <button class="btn coral small" id="r-newton" style="margin-top:8px">🃏 ${T('Grand card: Newton', 'البطاقة الكبرى: نيوتن')}</button></div>`);
     m.querySelector('#r-grand').onclick = () => showCertificate('all');
+    m.querySelector('#r-newton').onclick = () => showCard('newton');
   }
 }
 
@@ -564,7 +760,8 @@ function showLose(s, msg) {
       <button class="btn mint" id="l-retry">↻ ${t('btn.retry')}</button>
       <button class="btn ghost" id="l-levels">${t('btn.levels')}</button>
     </div>`);
-  m.querySelector('#l-retry').onclick = () => startLevel(s.id, s.levelIndex, s.attempt + 1);
+  // in a boss fight the monster keeps its lost hearts: retry the same round
+  m.querySelector('#l-retry').onclick = () => startLevel(s.id, s.levelIndex, s.attempt + 1, s.boss || null);
   m.querySelector('#l-levels').onclick = () => showGameIntro(s.id, s.levelIndex);
 }
 
@@ -802,6 +999,9 @@ function checkAchievements() {
   if (totalStars() >= 30) unlock('stars_30');
   if (Object.keys(store.quiz).length >= 10) unlock('quiz_10');
   if (totalStars() >= maxStars()) unlock('all_stars');
+  const bosses = GAMES.filter(g => store.bosses?.[g.id]).length;
+  if (bosses >= 1) unlock('boss_1');
+  if (bosses >= 6) unlock('all_bosses');
 }
 
 // ---------------- boot ----------------

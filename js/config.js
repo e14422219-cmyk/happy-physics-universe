@@ -124,6 +124,8 @@ export const ACHIEVEMENTS = [
   { id: 'crystal_1', icon: '💎', name: { en: 'Crystal Keeper', ar: 'حارس البلّورة' }, desc: { en: 'Restore your first crystal', ar: 'استعد أول بلّورة' } },
   { id: 'stars_30', icon: '🌟', name: { en: 'Star Collector', ar: 'جامع النجوم' }, desc: { en: 'Collect 30 stars', ar: 'اجمع 30 نجمة' } },
   { id: 'quiz_10', icon: '🧠', name: { en: 'Quiz Whiz', ar: 'عبقري الأسئلة' }, desc: { en: 'Answer 10 quick checks correctly', ar: 'أجب 10 أسئلة سريعة إجابة صحيحة' } },
+  { id: 'boss_1', icon: '👾', name: { en: 'Glitch Fixer', ar: 'مصلح الغليتش' }, desc: { en: 'Defeat your first boss', ar: 'اهزم أول زعيم' } },
+  { id: 'all_bosses', icon: '⚔️', name: { en: 'Boss Hunter', ar: 'صائد الزعماء' }, desc: { en: 'Defeat all six bosses', ar: 'اهزم الزعماء الستة' } },
   { id: 'all_crystals', icon: '👑', name: { en: 'Universe Guardian', ar: 'حامي الكون' }, desc: { en: 'Restore all six crystals', ar: 'استعد البلّورات الست' } },
   { id: 'all_stars', icon: '🏆', name: { en: 'Physics Legend', ar: 'أسطورة الفيزياء' }, desc: { en: 'Get every star in the universe', ar: 'احصل على كل النجوم في الكون' } }
 ];

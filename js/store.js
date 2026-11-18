@@ -17,7 +17,8 @@ function blank() {
     pid: '',            // random anonymous id for play statistics and the heroes board
     nick: null,         // { a, n } heroes board nickname (word indexes); null until the player joins
     daily: {},          // { 'YYYY-MM-DD': true } daily challenges completed
-    settings: { lang: 'ar', sound: true, teacher: false, speed: 1 }
+    bosses: {},         // { gameId: true } boss fights won
+    settings: { lang: 'ar', sound: true, music: true, teacher: false, speed: 1 }
   };
 }
 
