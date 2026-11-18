@@ -100,7 +100,21 @@
     .tabs button { flex: none; background: transparent; color: var(--soft); box-shadow: none; padding: 8px 16px; min-height: 40px; }
     .tabs button.on { background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: #2a1600; box-shadow: 0 4px 14px rgba(245, 201, 106, .35); }
     .head-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .head-actions select { min-height: 36px; padding: 4px 12px; border-radius: 999px; border-color: var(--line-gold); }
+    table.cmp { min-width: 520px; }
+    table.cmp th small { display: block; color: var(--muted); font-weight: 600; font-size: .7rem; direction: ltr; }
+    table.cmp td { font-variant-numeric: tabular-nums; font-weight: 800; }
+    table.cmp td:first-child { color: var(--soft); font-weight: 700; }
+    table.cmp td:last-child { color: var(--gold-2); }
+    .lk { font-weight: 800; }
+    .lk-main { color: var(--gold-2); }
+    .lk-plus { color: #9fefff; }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .85rem; color: var(--soft); margin-bottom: 6px; }
+    .legend i { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--gold); vertical-align: middle; margin-inline-end: 6px; border-radius: 2px; }
+    .legend i.plus { border-top: 3px dashed #4fe3ff; }
+    .chart .line.plus { stroke: #4fe3ff; stroke-dasharray: 6 4; }
+    .chart .dot.plus { fill: #9fefff; }
+    .chart .end-t { font-size: 11px; font-weight: 800; font-family: inherit; }
+    .split { color: var(--muted); font-size: .78rem; }
     .site-tag { display: inline-block; margin-inline-start: 6px; padding: 0 7px; border-radius: 99px; font-size: .7rem; font-weight: 800; background: rgba(140, 107, 255, .2); color: #d6cbff; vertical-align: middle; }
 
     .grid { display: grid; gap: 14px; }
@@ -246,11 +260,6 @@
         <div class="spacer"></div>
         <div id="sig-top"></div>
         <div class="head-actions">
-          <select id="site" aria-label="أي رابط؟" title="أي رابط؟">
-            <option value="">🌐 الرابطان معًا</option>
-            <option value="main">🎮 الرابط الأول</option>
-            <option value="plus">✨ الرابط الثاني</option>
-          </select>
           <button class="ghost mini" id="refresh" type="button" title="تحديث" aria-label="تحديث">↻ تحديث</button>
           <button class="ghost mini" id="logout" type="button">خروج</button>
         </div>
@@ -272,6 +281,14 @@
           <div class="card kpi"><div class="ic">🏁</div><div class="n" id="k-success">—</div><div class="l">نسبة النجاح</div><div class="sub">نجاح ÷ محاولة</div></div>
           <div class="card kpi"><div class="ic">💬</div><div class="n" id="k-count">0</div><div class="l">تقييم</div><div class="sub" id="k-count-sub">—</div></div>
           <div class="card kpi"><div class="ic">⭐</div><div class="n" id="k-avg">—</div><div class="l">متوسط النجوم</div><div class="sub">من 5</div></div>
+        </div>
+        <div class="card section">
+          <h2>🔗 كل رابط لحاله</h2>
+          <p class="hint">الأرقام فوق هي مجموع الرابطين، وهنا تفصيلها لكل رابط (آخر 30 يومًا للزيارات والمحاولات).</p>
+          <div class="table-box"><table class="cmp">
+            <thead><tr><th>المقياس</th><th><span class="lk lk-main">🎮 الرابط الأول</span><small>happy-physics-universe</small></th><th><span class="lk lk-plus">✨ الرابط الثاني</span><small>happy-physics-plus</small></th><th>المجموع</th></tr></thead>
+            <tbody id="cmp"></tbody>
+          </table></div>
         </div>
         <div class="grid two section">
           <div class="card">
@@ -310,6 +327,7 @@
         <div class="card">
           <div class="filters">
             <input type="search" id="search" placeholder="ابحث بالاسم أو الملاحظة أو الجهاز" aria-label="بحث">
+            <select id="f-site" aria-label="الرابط"><option value="">كل الروابط</option><option value="main">🎮 الرابط الأول</option><option value="plus">✨ الرابط الثاني</option></select>
             <select id="f-role" aria-label="الصفة"><option value="">كل الصفات</option></select>
             <select id="f-dev" aria-label="الجهاز"><option value="">كل الأجهزة</option><option value="phone">📱 جوال</option><option value="tablet">📟 تابلت</option><option value="computer">💻 كمبيوتر</option><option value="none">بدون جهاز (قديم)</option></select>
             <label>من<input type="date" id="f-from"></label>
@@ -434,7 +452,7 @@
         keepKey(key);
         ratings = j.ratings || [];
         hidden = new Set(j.hidden || []);
-        stats = await loadStats();
+        [stats, statsBy.main, statsBy.plus] = await Promise.all([loadStats(''), loadStats('main'), loadStats('plus')]);
         $('#err').textContent = '';
         $('#login-view').hidden = true;
         $('#app').hidden = false;
@@ -445,10 +463,11 @@
       }
     }
 
-    const site = () => $('#site').value;
+    const statsBy = { main: null, plus: null };
+    const LINKS = { main: '🎮 الرابط الأول', plus: '✨ الرابط الثاني' };
     const siteOf = r => r.site || 'main';   // ratings sent before the second link existed came from the first one
-    const siteRatings = () => site() ? ratings.filter(r => siteOf(r) === site()) : ratings;
-    const loadStats = () => api('/api/stats' + (site() ? '?site=' + site() : '')).then(x => x.ok ? x.json() : null).catch(() => null);
+    const siteRatings = () => { const s = $('#f-site').value; return s ? ratings.filter(r => siteOf(r) === s) : ratings; };
+    const loadStats = s => api('/api/stats' + (s ? '?site=' + s : '')).then(x => x.ok ? x.json() : null).catch(() => null);
 
     function bars(el, entries, max, f = v => v) {
       el.innerHTML = entries.length ? entries.map(([label, v]) =>
@@ -460,8 +479,8 @@
     function renderAll() { renderOverview(); renderRatings(); renderPlay(); renderHeroes(); renderAlerts(); }
 
     // ---------- overview ----------
-    function levelRows() {
-      const lv = stats?.levels || {};
+    function levelRows(src = stats) {
+      const lv = src?.levels || {};
       const rows = [];
       Object.keys(GAMES).forEach(g => { for (let i = 0; i < 5; i++) {
         const s = lv[`${g}:${i}:start`] || 0, w = lv[`${g}:${i}:win`] || 0, f = lv[`${g}:${i}:fail`] || 0, st = lv[`${g}:${i}:stars`] || 0;
@@ -470,8 +489,30 @@
       return rows;
     }
 
+    // numbers for one link ('main' / 'plus') or both ('')
+    function linkNumbers(s) {
+      const st = s ? statsBy[s] : stats;
+      const R = s ? ratings.filter(r => siteOf(r) === s) : ratings;
+      const days = st?.days || [];
+      const sum = k => days.reduce((a, d) => a + (d[k] || 0), 0);
+      const starts = sum('starts');
+      return {
+        players: st?.players || 0, visits: sum('visits'), starts, wins: sum('wins'),
+        success: starts ? Math.round((sum('wins') / starts) * 100) + '%' : '—',
+        ratings: R.length, avg: R.length ? (R.reduce((a, r) => a + scoreOf(r), 0) / R.length).toFixed(1) + ' ★' : '—'
+      };
+    }
+
+    function renderCompare() {
+      const m = linkNumbers('main'), p = linkNumbers('plus'), a = linkNumbers('');
+      const rows = [['🧑‍🚀 لاعب مختلف', 'players'], ['🚪 زيارة', 'visits'], ['▶️ محاولة لعب', 'starts'], ['🏁 نجاح', 'wins'], ['📊 نسبة النجاح', 'success'], ['💬 تقييم', 'ratings'], ['⭐ متوسط النجوم', 'avg']];
+      const v = x => typeof x === 'number' ? fmt(x) : x;
+      $('#cmp').innerHTML = rows.map(([label, k]) => `<tr><td>${label}</td><td>${v(m[k])}</td><td>${v(p[k])}</td><td>${v(a[k])}</td></tr>`).join('');
+    }
+
     function renderOverview() {
-      const R = siteRatings();
+      const R = ratings;
+      renderCompare();
       const days = stats?.days || [];
       const sum = k => days.reduce((a, d) => a + (d[k] || 0), 0);
       $('#k-players').textContent = fmt(stats?.players || 0);
@@ -495,11 +536,13 @@
       const hard = levelRows().filter(x => x.starts >= 5).sort((a, b) => a.rate - b.rate).slice(0, 5);
       $('#hard-top').innerHTML = hard.length ? hard.map(x => `
         <div class="hard-item"><span style="font-size:1.4rem">${GAMES[x.g][0]}</span>
-          <div><b>${GAMES[x.g][1]} • المرحلة ${x.i + 1}</b><div class="hint" style="margin:0">${fmt(x.starts)} محاولة • ${fmt(x.fails)} فشل</div></div>
+          <div><b>${GAMES[x.g][1]} • المرحلة ${x.i + 1}</b><div class="hint" style="margin:0">${fmt(x.starts)} محاولة • ${fmt(x.fails)} فشل</div>
+            <div class="split"><span class="lk-main">الأول ${fmt(levelRows(statsBy.main).find(z => z.g === x.g && z.i === x.i)?.starts)}</span> • <span class="lk-plus">الثاني ${fmt(levelRows(statsBy.plus).find(z => z.g === x.g && z.i === x.i)?.starts)}</span> محاولة</div></div>
           <span class="pct" title="نسبة النجاح">${Math.round(x.rate * 100)}%</span></div>`).join('')
         : '<span class="hint">تظهر هنا بعد أن يلعب الناس قليلًا.</span>';
     }
 
+    // One chart, one axis, two lines: the first link (solid gold) and the second link (dashed aqua).
     function drawTrend() {
       const days = stats?.days || [];
       const titles = { players: 'اللاعبون يوميًا', starts: 'المحاولات يوميًا', ratings: 'التقييمات يوميًا' };
@@ -507,37 +550,49 @@
       document.querySelectorAll('[data-metric]').forEach(b => b.classList.toggle('on', b.dataset.metric === metric));
       const box = $('#trend');
       if (!days.length) { box.innerHTML = '<p class="hint">لا توجد بيانات بعد.</p>'; return; }
-      const W = 640, H = 230, L = 34, R = 10, T = 14, B = 26;
-      const vals = days.map(d => d[metric] || 0);
-      const nice = Math.ceil(Math.max(4, ...vals) / 4) * 4;
+      const series = ['main', 'plus'].map(s => (statsBy[s]?.days || days.map(() => ({}))).map(d => d[metric] || 0));
+      const W = 640, H = 230, L = 34, R = 74, T = 14, B = 26;
+      const nice = Math.ceil(Math.max(4, ...series.flat()) / 4) * 4;
       const step = (W - L - R) / (days.length - 1);
       const x = i => L + i * step;
       const y = v => T + (H - T - B) * (1 - v / nice);
       const ticks = [0, .25, .5, .75, 1].map(f => Math.round(nice * f));
-      const pts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+      const pts = vals => vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
       const lbl = d => { const [, m, dd] = d.split('-'); return `${+dd}/${+m}`; };
+      const last = days.length - 1;
+      // end labels: keep them apart when the two lines finish close together
+      let yM = y(series[0][last]), yP = y(series[1][last]);
+      if (Math.abs(yM - yP) < 14) { const mid = (yM + yP) / 2, up = yM <= yP; yM = mid + (up ? -8 : 8); yP = mid + (up ? 8 : -8); }
       box.innerHTML = `
-        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${titles[metric]}" direction="ltr">
-          <defs><linearGradient id="gold-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5c96a" stop-opacity=".35"/><stop offset="1" stop-color="#f5c96a" stop-opacity="0"/></linearGradient></defs>
+        <div class="legend"><span><i></i>🎮 الرابط الأول</span><span><i class="plus"></i>✨ الرابط الثاني</span></div>
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${titles[metric]}: الرابط الأول والرابط الثاني" direction="ltr">
+          <defs><linearGradient id="gold-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5c96a" stop-opacity=".28"/><stop offset="1" stop-color="#f5c96a" stop-opacity="0"/></linearGradient></defs>
           ${ticks.map(t => `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="axis-t" x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join('')}
           ${days.map((d, i) => i % 5 === 4 || i === 0 ? `<text class="axis-t" x="${x(i)}" y="${H - 6}" text-anchor="middle">${lbl(d.day)}</text>` : '').join('')}
-          <polygon class="area" points="${x(0)},${y(0)} ${pts.join(' ')} ${x(days.length - 1)},${y(0)}"/>
-          <polyline class="line" points="${pts.join(' ')}"/>
+          <polygon class="area" points="${x(0)},${y(0)} ${pts(series[0])} ${x(last)},${y(0)}"/>
+          <polyline class="line" points="${pts(series[0])}"/>
+          <polyline class="line plus" points="${pts(series[1])}"/>
+          <text class="end-t" x="${x(last) + 8}" y="${yM + 4}" fill="#ffe7a3">الأول ${fmt(series[0][last])}</text>
+          <text class="end-t" x="${x(last) + 8}" y="${yP + 4}" fill="#9fefff">الثاني ${fmt(series[1][last])}</text>
           <line class="cross" id="cross" y1="${T}" y2="${H - B}" x1="0" x2="0" visibility="hidden"/>
           <circle class="dot" id="hdot" r="5" cx="0" cy="0" visibility="hidden"/>
+          <circle class="dot plus" id="hdot2" r="5" cx="0" cy="0" visibility="hidden"/>
           ${days.map((d, i) => `<rect class="hit" data-i="${i}" x="${x(i) - step / 2}" y="${T}" width="${step}" height="${H - T - B}"/>`).join('')}
         </svg><div class="tip" id="tip" hidden></div>`;
-      const svg = box.querySelector('svg'), tip = box.querySelector('#tip'), cross = box.querySelector('#cross'), dot = box.querySelector('#hdot');
+      const svg = box.querySelector('svg'), tip = box.querySelector('#tip'), cross = box.querySelector('#cross');
+      const dots = [box.querySelector('#hdot'), box.querySelector('#hdot2')];
       const show = i => {
-        const px = x(i), py = y(vals[i]);
+        const px = x(i);
         cross.setAttribute('x1', px); cross.setAttribute('x2', px); cross.setAttribute('visibility', 'visible');
-        dot.setAttribute('cx', px); dot.setAttribute('cy', py); dot.setAttribute('visibility', 'visible');
-        const sc = svg.getBoundingClientRect().width / W;
-        tip.hidden = false; tip.style.left = px * sc + 'px'; tip.style.top = py * sc + 'px';
-        tip.textContent = `${lbl(days[i].day)} • ${fmt(vals[i])}`;
+        dots.forEach((d, k) => { d.setAttribute('cx', px); d.setAttribute('cy', y(series[k][i])); d.setAttribute('visibility', 'visible'); });
+        const r = svg.getBoundingClientRect(), b = box.getBoundingClientRect(), sc = r.width / W;
+        tip.hidden = false;
+        tip.style.left = (r.left - b.left + px * sc) + 'px';
+        tip.style.top = (r.top - b.top + y(Math.max(series[0][i], series[1][i])) * sc) + 'px';
+        tip.textContent = `${lbl(days[i].day)} • الأول ${fmt(series[0][i])} • الثاني ${fmt(series[1][i])}`;
       };
       box.querySelectorAll('.hit').forEach(h => { h.addEventListener('pointerenter', () => show(+h.dataset.i)); h.addEventListener('pointerdown', () => show(+h.dataset.i)); });
-      svg.addEventListener('pointerleave', () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); });
+      svg.addEventListener('pointerleave', () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); dots.forEach(d => d.setAttribute('visibility', 'hidden')); });
     }
 
     // ---------- ratings ----------
@@ -627,17 +682,20 @@
 
     // ---------- play ----------
     function renderPlay() {
-      const rows = levelRows();
+      const rows = levelRows(), rowsM = levelRows(statsBy.main), rowsP = levelRows(statsBy.plus);
+      const startsOf = (list, g) => list.filter(r => r.g === g).reduce((a, r) => a + r.starts, 0);
       $('#games').innerHTML = Object.entries(GAMES).map(([g, [ic, name]]) => {
         const lv = rows.filter(r => r.g === g);
         const total = lv.reduce((a, r) => a + r.starts, 0);
         return `<div class="card game-card">
           <div class="gh"><span style="font-size:1.6rem">${ic}</span><b>${name}</b><small>${fmt(total)} محاولة</small></div>
+          <div class="split" style="margin:-4px 0 8px"><span class="lk-main">🎮 الرابط الأول: ${fmt(startsOf(rowsM, g))}</span> • <span class="lk-plus">✨ الرابط الثاني: ${fmt(startsOf(rowsP, g))}</span> محاولة</div>
           <div class="lv head"><span>المرحلة</span><span>نسبة النجاح</span><span class="num">نجاح</span><span class="num">فشل</span><span class="num">نجوم</span></div>
           ${lv.map(r => {
             const hard = r.rate != null && r.starts >= 5 && r.rate < .5;
             const easy = r.rate != null && r.starts >= 5 && r.rate >= .9;
-            return `<div class="lv" title="${fmt(r.starts)} محاولة">
+            const m = rowsM.find(x => x.g === g && x.i === r.i), p = rowsP.find(x => x.g === g && x.i === r.i);
+            return `<div class="lv" title="${fmt(r.starts)} محاولة — الرابط الأول ${fmt(m?.starts)} (نجاح ${fmt(m?.wins)}) • الرابط الثاني ${fmt(p?.starts)} (نجاح ${fmt(p?.wins)})">
               <span>${r.i + 1} ${hard ? '<span class="tag hard">صعبة</span>' : easy ? '<span class="tag easy">سهلة</span>' : ''}</span>
               <span style="display:flex;align-items:center;gap:6px"><span class="rate-bar ${hard ? 'hard' : ''}" style="flex:1"><i style="width:${r.rate != null ? Math.max(2, r.rate * 100) : 0}%"></i></span><span class="num" style="width:36px">${r.rate != null ? Math.round(r.rate * 100) + '%' : '—'}</span></span>
               <span class="num">${fmt(r.wins)}</span><span class="num">${fmt(r.fails)}</span><span class="num">${r.wins ? r.avgStars.toFixed(1) + '★' : '—'}</span>
@@ -702,17 +760,11 @@
     });
     try { const t = sessionStorage.getItem('hpu-admin-tab'); if (t) document.querySelector(`[data-tab="${t}"]`)?.click(); } catch {}
     document.querySelectorAll('[data-metric]').forEach(b => b.onclick = () => { metric = b.dataset.metric; drawTrend(); });
-    ['#search', '#f-role', '#f-dev', '#f-from', '#f-to'].forEach(s => $(s).addEventListener('input', renderRatings));
-    $('#f-clear').onclick = () => { ['#search', '#f-role', '#f-dev', '#f-from', '#f-to'].forEach(s => $(s).value = ''); renderRatings(); };
+    const FILTERS = ['#search', '#f-site', '#f-role', '#f-dev', '#f-from', '#f-to'];
+    FILTERS.forEach(s => $(s).addEventListener('input', renderRatings));
+    $('#f-clear').onclick = () => { FILTERS.forEach(s => $(s).value = ''); renderRatings(); };
     $('#login').onsubmit = e => { e.preventDefault(); const k = $('#key').value; if (k) load(k); };
     $('#refresh').onclick = () => load(storedKey());
-    $('#site').onchange = async () => {
-      try { sessionStorage.setItem('hpu-admin-site', site()); } catch {}
-      stats = await loadStats();
-      renderAll();
-      toast(site() === 'plus' ? 'تعرض الآن: الرابط الثاني' : site() === 'main' ? 'تعرض الآن: الرابط الأول' : 'تعرض الآن: الرابطين معًا');
-    };
-    try { $('#site').value = sessionStorage.getItem('hpu-admin-site') || ''; } catch {}
     $('#csv').onclick = csv;
     $('#logout').onclick = () => { keepKey(''); ratings = []; stats = null; $('#app').hidden = true; $('#login-view').hidden = false; $('#key').value = ''; };
     if (storedKey()) load(storedKey());
