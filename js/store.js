@@ -10,6 +10,10 @@ function blank() {
     tutorialSeen: {},   // { gameId: true }
     storySeen: false,
     endingSeen: false,
+    profile: null,      // { name, age, role } from the welcome page; never shown inside the games
+    rated: false,       // the rating form was sent from this device
+    ratePrompted: false,
+    pending: [],        // ratings waiting to be sent (offline / database not set up yet)
     settings: { lang: 'ar', sound: true }
   };
 }
@@ -37,9 +41,12 @@ export const store = {
   },
 
   reset() {
-    const keepLang = this.settings.lang;
+    const keep = { lang: this.settings.lang, profile: this.profile, rated: this.rated, pending: this.pending };
     Object.assign(this, blank());
-    this.settings.lang = keepLang;
+    this.settings.lang = keep.lang;
+    this.profile = keep.profile;
+    this.rated = keep.rated;
+    this.pending = keep.pending;
     this.save();
   }
 };

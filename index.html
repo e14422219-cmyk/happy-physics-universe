@@ -9,13 +9,23 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700;800&family=Lalezar&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- fantasy backdrop: nebula colours, animated stars, floating planets and islands -->
+  <div class="backdrop" aria-hidden="true">
+    <div class="nebula"></div>
+    <canvas id="sky"></canvas>
+    <svg class="float planet" viewBox="0 0 120 120"><defs><radialGradient id="pl1" cx=".35" cy=".3"><stop offset="0" stop-color="#ffd1f0"/><stop offset=".6" stop-color="#c04bff"/><stop offset="1" stop-color="#5a19a8"/></radialGradient></defs><circle cx="60" cy="60" r="34" fill="url(#pl1)"/><ellipse cx="60" cy="62" rx="56" ry="13" fill="none" stroke="#ffd36b" stroke-width="5" transform="rotate(-18 60 62)"/></svg>
+    <svg class="float moon" viewBox="0 0 100 100"><defs><radialGradient id="mn" cx=".4" cy=".35"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#9fe8ff"/></radialGradient></defs><circle cx="50" cy="50" r="30" fill="url(#mn)"/><circle cx="40" cy="42" r="6" fill="#c6f2ff"/><circle cx="60" cy="60" r="4" fill="#c6f2ff"/></svg>
+    <svg class="float island one" viewBox="0 0 160 110"><path d="M10 40 Q80 22 150 40 Q120 100 80 106 Q40 100 10 40Z" fill="#6b4ad6"/><path d="M10 40 Q80 22 150 40 Q80 54 10 40Z" fill="#4be0a6"/><path d="M60 38 V14 M60 18 Q46 8 40 16 M60 18 Q74 6 82 14" stroke="#2fb985" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M104 34 l8 -22 8 22z" fill="#ffd36b"/></svg>
+    <svg class="float island two" viewBox="0 0 160 110"><path d="M14 40 Q80 26 146 40 Q116 96 80 104 Q44 96 14 40Z" fill="#3d2a9e"/><path d="M14 40 Q80 26 146 40 Q80 52 14 40Z" fill="#ff8fd8"/><path d="M80 36 l10 -26 10 26z" fill="#3ef0ff" stroke="#fff" stroke-width="2"/></svg>
+  </div>
   <div id="app">
+    <section id="screen-welcome" class="screen" aria-label="Welcome"></section>
     <section id="screen-home" class="screen" aria-label="Home"></section>
-    <section id="screen-levels" class="screen" aria-label="Levels"></section>
+    <section id="screen-rate" class="screen" aria-label="Rating"></section>
     <section id="screen-game" class="screen" aria-label="Game">
       <header class="game-top">
         <button class="icon-btn" id="g-back" aria-label="Back">⟵</button>

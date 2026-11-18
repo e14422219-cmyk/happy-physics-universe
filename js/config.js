@@ -6,6 +6,27 @@
 // true: a level opens only after the one before it is completed.
 export const LOCK_LEVELS = false;
 
+// Age rating shown on the portal and the welcome page.
+export const AGE_RATING = { min: 5, max: 16 };
+
+// "Who are you?" choices on the welcome page (sent with each rating).
+export const ROLES = [
+  { id: 'student', icon: '🎒', name: { en: 'Student', ar: 'طالب' } },
+  { id: 'teacher', icon: '👩‍🏫', name: { en: 'Teacher / Doctor', ar: 'معلم / دكتور' } },
+  { id: 'employee', icon: '💼', name: { en: 'Employee', ar: 'موظف' } },
+  { id: 'parent', icon: '👨‍👩‍👧', name: { en: 'Parent', ar: 'ولي أمر' } },
+  { id: 'other', icon: '✨', name: { en: 'Other', ar: 'أخرى' } }
+];
+
+// Rating page questions, each answered with 1–5 stars.
+export const RATING_QUESTIONS = [
+  { id: 'fun', icon: '😄', q: { en: 'How much did you enjoy playing?', ar: 'كم استمتعت باللعب؟' } },
+  { id: 'learn', icon: '🧠', q: { en: 'Did the games help you understand physics?', ar: 'هل ساعدتك الألعاب على فهم الفيزياء؟' } },
+  { id: 'easy', icon: '🕹️', q: { en: 'How easy was it to play?', ar: 'ما مدى سهولة اللعب؟' } },
+  { id: 'look', icon: '🎨', q: { en: 'How do you like the design and graphics?', ar: 'ما رأيك في التصميم والرسوم؟' } },
+  { id: 'recommend', icon: '💌', q: { en: 'Would you recommend it to a friend?', ar: 'هل تنصح أصدقاءك بها؟' } }
+];
+
 export const GAMES = [
   {
     id: 'bird',

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>لوحة التقييمات</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700;800&family=Lalezar&display=swap" rel="stylesheet">
+  <style>
+    /* Owner's private ratings board: summary first, then every rating. */
+    :root {
+      --bg: #0f0838; --bg2: #24106b; --card: rgba(255,255,255,.08); --line: rgba(255,255,255,.18);
+      --text: #f4efff; --soft: #c9bff0; --gold: #ffd36b; --mint: #3cf2b0; --pink: #ff4fd8; --coral: #ff7a93;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font: 600 15px/1.5 'Baloo Bhaijaan 2', system-ui, sans-serif; color: var(--text);
+      background: radial-gradient(50% 40% at 15% 10%, rgba(255,79,216,.3), transparent 70%), radial-gradient(50% 40% at 90% 90%, rgba(62,240,255,.22), transparent 70%), linear-gradient(180deg, var(--bg), var(--bg2));
+      background-attachment: fixed;
+    }
+    .wrap { max-width: 1150px; margin: 0 auto; padding-block: 22px 50px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+    h1 { font-family: 'Lalezar', sans-serif; font-weight: 400; font-size: clamp(1.8rem, 5vw, 2.6rem); margin: 0 0 4px;
+      background: linear-gradient(90deg, var(--gold), #ff9ad8, #3ef0ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sub { color: var(--soft); margin: 0 0 18px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px 18px; backdrop-filter: blur(10px); }
+    .login { max-width: 440px; }
+    input, select {
+      font: inherit; font-weight: 700; color: #fff; background: rgba(0,0,0,.3); border: 2px solid var(--line); border-radius: 12px; padding: 9px 12px; outline: none;
+    }
+    input:focus, select:focus { border-color: #3ef0ff; }
+    button {
+      font: inherit; font-weight: 800; border: 0; border-radius: 999px; padding: 9px 18px; cursor: pointer; color: #2a1600;
+      background: linear-gradient(180deg, #ffe08a, #f5a623); box-shadow: 0 4px 0 rgba(0,0,0,.25);
+    }
+    button.ghost { background: rgba(255,255,255,.12); color: #fff; box-shadow: none; border: 1px solid var(--line); }
+    button:focus-visible, input:focus-visible { outline: 3px solid #3ef0ff; outline-offset: 2px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .err { color: #ffb3c1; min-height: 1.4em; margin-top: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 16px 0; }
+    .kpi .n { font-family: 'Lalezar', sans-serif; font-size: 2.6rem; line-height: 1.1; color: var(--gold); font-variant-numeric: tabular-nums; }
+    .kpi .l { color: var(--soft); }
+    .bars { display: grid; gap: 8px; margin-top: 6px; }
+    .bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 2px 8px; align-items: center; font-size: .92rem; }
+    .bar-row > span { grid-column: 1 / -1; }
+    .bar { height: 10px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
+    .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold), var(--pink)); }
+    .bar-row b { text-align: end; font-variant-numeric: tabular-nums; }
+    h2 { font-family: 'Lalezar', sans-serif; font-weight: 400; font-size: 1.4rem; margin: 0 0 6px; }
+    .table-box { overflow-x: auto; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; min-width: 860px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: start; vertical-align: top; }
+    th { color: var(--soft); font-size: .85rem; position: sticky; top: 0; }
+    td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .stars { color: var(--gold); letter-spacing: 1px; white-space: nowrap; }
+    .comment { max-width: 280px; color: var(--soft); }
+    .empty { color: var(--soft); text-align: center; padding: 30px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>لوحة تقييمات كون الفيزياء السعيد</h1>
+    <p class="sub">صفحة خاصة بك: أسماء المقيّمين وتقييماتهم. لا تشارك رابطها ولا كلمة المرور.</p>
+
+    <form class="card login" id="login">
+      <label for="key" style="display:block;margin-bottom:8px">🔑 كلمة مرور اللوحة (ADMIN_KEY)</label>
+      <div class="row">
+        <input id="key" type="password" autocomplete="current-password" style="flex:1;min-width:180px">
+        <button type="submit">دخول</button>
+      </div>
+      <div class="err" id="err" aria-live="polite"></div>
+    </form>
+
+    <div id="board" hidden>
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <input id="search" placeholder="ابحث بالاسم أو الملاحظة" aria-label="بحث">
+          <select id="role-filter" aria-label="تصفية حسب الصفة"><option value="">كل الصفات</option></select>
+        </div>
+        <div class="row">
+          <button class="ghost" id="refresh" type="button">↻ تحديث</button>
+          <button class="ghost" id="csv" type="button">⬇ تنزيل CSV</button>
+          <button class="ghost" id="logout" type="button">خروج</button>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card kpi"><div class="n" id="k-count">0</div><div class="l">عدد التقييمات</div></div>
+        <div class="card kpi"><div class="n" id="k-avg">—</div><div class="l">متوسط النجوم (من 5)</div></div>
+        <div class="card"><h2>متوسط كل سؤال</h2><div class="bars" id="by-q"></div></div>
+        <div class="card"><h2>الصفة</h2><div class="bars" id="by-role"></div></div>
+        <div class="card"><h2>الأعمار</h2><div class="bars" id="by-age"></div></div>
+        <div class="card"><h2>اللعبة المفضّلة</h2><div class="bars" id="by-fav"></div></div>
+      </div>
+      <div class="card">
+        <h2>كل التقييمات</h2>
+        <div class="table-box"><table>
+          <thead><tr><th>التاريخ</th><th>الاسم</th><th>العمر</th><th>الصفة</th><th>الاستمتاع</th><th>الفهم</th><th>السهولة</th><th>التصميم</th><th>التوصية</th><th>المفضّلة</th><th>الملاحظة</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+        <div class="empty" id="empty" hidden>لا توجد تقييمات بعد.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ROLES = { student: '🎒 طالب', teacher: '👩‍🏫 معلم / دكتور', employee: '💼 موظف', parent: '👨‍👩‍👧 ولي أمر', other: '✨ أخرى' };
+    const QS = { fun: 'كم استمتعت باللعب؟', learn: 'هل ساعدت على فهم الفيزياء؟', easy: 'سهولة اللعب', look: 'التصميم والرسوم', recommend: 'هل تنصح بها؟' };
+    const GAMES = { bird: 'الطائر السعيد', water: 'أنقذ الملك', magnet: 'بطل المغناطيس', circuit: 'مغامرة الدوائر', light: 'متاهة الضوء', energy: 'راكب الطاقة' };
+    const ERRORS = {
+      'wrong-key': 'كلمة المرور غير صحيحة.',
+      'admin-key-not-configured': 'لم تُضبط كلمة مرور اللوحة بعد: أضف المتغير ADMIN_KEY في إعدادات Vercel ثم أعد النشر.',
+      'storage-not-configured': 'قاعدة البيانات غير مربوطة بعد: اربط Upstash Redis بالمشروع من تبويب Storage في Vercel.'
+    };
+    const $ = s => document.querySelector(s);
+    const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+    const ageLabel = a => a > 16 ? '+16' : a;
+    let all = [];
+
+    function storedKey() { try { return sessionStorage.getItem('hpu-admin') || ''; } catch { return ''; } }
+    function keepKey(k) { try { k ? sessionStorage.setItem('hpu-admin', k) : sessionStorage.removeItem('hpu-admin'); } catch {} }
+
+    async function load(key) {
+      $('#err').textContent = 'جارٍ التحميل…';
+      try {
+        const r = await fetch('/api/ratings', { headers: { 'x-admin-key': key } });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) { $('#err').textContent = ERRORS[j.error] || 'تعذّر جلب التقييمات (' + r.status + ').'; keepKey(''); return; }
+        keepKey(key);
+        all = j.ratings || [];
+        $('#err').textContent = '';
+        $('#login').hidden = true;
+        $('#board').hidden = false;
+        render();
+      } catch {
+        $('#err').textContent = 'تعذّر الاتصال بالخادم. افتح هذه الصفحة من رابط Vercel.';
+      }
+    }
+
+    function bars(el, entries, max, fmt = v => v) {
+      el.innerHTML = entries.length ? entries.map(([label, v]) =>
+        `<div class="bar-row"><span>${esc(label)}</span><div class="bar"><i style="width:${max ? (v / max) * 100 : 0}%"></i></div><b>${fmt(v)}</b></div>`).join('')
+        : '<span class="sub">—</span>';
+    }
+    const count = (list, f) => { const m = {}; list.forEach(x => { const k = f(x); if (k !== '' && k != null) m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+
+    function render() {
+      const q = $('#search').value.trim().toLowerCase(), role = $('#role-filter').value;
+      const list = all.filter(r => (!role || r.role === role) && (!q || (r.name + ' ' + (r.comment || '')).toLowerCase().includes(q)));
+      $('#k-count').textContent = list.length;
+      const avgOf = k => list.length ? list.reduce((a, r) => a + (r.answers?.[k] || 0), 0) / list.length : 0;
+      const overall = list.length ? Object.keys(QS).reduce((a, k) => a + avgOf(k), 0) / Object.keys(QS).length : 0;
+      $('#k-avg').textContent = list.length ? overall.toFixed(1) + ' ★' : '—';
+      bars($('#by-q'), Object.entries(QS).map(([k, l]) => [l, avgOf(k)]), 5, v => v.toFixed(1));
+      const byRole = count(list, r => ROLES[r.role] || r.role);
+      bars($('#by-role'), byRole, byRole[0]?.[1]);
+      const byAge = count(list, r => ageLabel(r.age)).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+      bars($('#by-age'), byAge, Math.max(0, ...byAge.map(x => x[1])));
+      const byFav = count(list, r => GAMES[r.favorite] || '');
+      bars($('#by-fav'), byFav, byFav[0]?.[1]);
+      $('#rows').innerHTML = list.map(r => `<tr>
+        <td class="num">${esc(new Date(r.at).toLocaleString('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }))}</td>
+        <td>${esc(r.name)}</td><td class="num">${esc(ageLabel(r.age))}</td><td>${esc(ROLES[r.role] || r.role)}</td>
+        ${Object.keys(QS).map(k => `<td class="stars" title="${r.answers?.[k] || 0}/5">${stars(r.answers?.[k] || 0)}</td>`).join('')}
+        <td>${esc(GAMES[r.favorite] || '—')}</td><td class="comment">${esc(r.comment || '')}</td></tr>`).join('');
+      $('#empty').hidden = list.length > 0;
+    }
+
+    function csv() {
+      const head = ['date', 'name', 'age', 'role', ...Object.keys(QS), 'favorite', 'comment'];
+      const cell = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+      const lines = all.map(r => [r.at, r.name, r.age, r.role, ...Object.keys(QS).map(k => r.answers?.[k]), r.favorite, r.comment].map(cell).join(','));
+      const blob = new Blob(['﻿' + [head.join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ratings.csv';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    Object.entries(ROLES).forEach(([k, v]) => $('#role-filter').insertAdjacentHTML('beforeend', `<option value="${k}">${v}</option>`));
+    $('#login').onsubmit = e => { e.preventDefault(); const k = $('#key').value; if (k) load(k); };
+    $('#search').oninput = render;
+    $('#role-filter').onchange = render;
+    $('#refresh').onclick = () => load(storedKey());
+    $('#csv').onclick = csv;
+    $('#logout').onclick = () => { keepKey(''); all = []; $('#board').hidden = true; $('#login').hidden = false; $('#key').value = ''; };
+    if (storedKey()) load(storedKey());
+  </script>
+</body>
+</html>
