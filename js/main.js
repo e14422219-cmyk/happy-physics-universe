@@ -197,6 +197,8 @@ function showHome() {
     <section class="tiles">
       ${GAMES.map((g, i) => tileHTML(g, i)).join('')}
     </section>
+    <h2 class="section-title display" id="reviews-title" hidden>💬 ${T('What players say', 'آراء اللاعبين')}</h2>
+    <section class="reviews glass" id="reviews" hidden aria-labelledby="reviews-title"></section>
     <section class="rate-cta glass">
       <div><h3 class="display">⭐ ${T('Tell us what you think!', 'أخبرنا برأيك!')}</h3><p>${T('Answer a few quick questions and rate the games with stars.', 'أجب عن أسئلة سريعة وقيّم الألعاب بالنجوم.')}</p></div>
       <button class="btn mint" id="h-rate2">${store.rated ? T('Rate again', 'قيّم مرة أخرى') : T('Rate the game', 'قيّم اللعبة')}</button>
@@ -211,6 +213,7 @@ function showHome() {
   $('#h-ach').onclick = showAchievements;
   $('#h-profile').onclick = () => go('#/welcome');
   $('#h-rate').onclick = $('#h-rate2').onclick = () => { sfx('click'); go('#/rate'); };
+  loadReviews();
 }
 
 // Poki-style tile: the art only; the name shows on hover/focus and is read by screen readers.
@@ -554,7 +557,7 @@ function showRate() {
     const missing = RATING_QUESTIONS.filter(q => !answers[q.id]);
     if (missing.length) { $('#r-err').textContent = T('Please give stars to every question.', 'من فضلك أعطِ نجومًا لكل سؤال.'); sfx('bad'); return; }
     $('#r-err').textContent = '';
-    const entry = { name: p.name, age: p.age, role: p.role, answers, favorite: fav, comment: $('#r-comment').value.trim().slice(0, 500), lang: getLang(), stars: totalStars() };
+    const entry = { name: p.name, age: p.age, role: p.role, answers, favorite: fav, comment: $('#r-comment').value.trim().slice(0, 500), lang: getLang(), stars: totalStars(), device: await deviceInfo() };
     const btn = $('#r-send');
     btn.disabled = true;
     btn.textContent = T('Sending…', 'جارٍ الإرسال…');
@@ -564,6 +567,58 @@ function showRate() {
     store.save();
     showThanks(sent);
   };
+}
+
+// Extra device details the server cannot read from the request: screen size, touch, and the phone model where the browser shares it.
+async function deviceInfo() {
+  const info = { screen: `${Math.round(screen.width)}x${Math.round(screen.height)}`, touch: (navigator.maxTouchPoints || 0) > 0 };
+  try {
+    const hi = await navigator.userAgentData?.getHighEntropyValues?.(['model']);
+    if (hi?.model) info.model = String(hi.model).slice(0, 40);
+  } catch { /* not shared by this browser */ }
+  return info;
+}
+
+// Anonymous reviews for the home page: averages and recent notes, never names.
+async function loadReviews() {
+  const box = $('#reviews');
+  if (!box) return;
+  try {
+    const r = await fetch(`${RATINGS_API}?view=public`);
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    if (!$('#reviews')) return;
+    if (!d.count) {
+      box.innerHTML = `<p class="reviews-empty">${T('No reviews yet. Be the first to rate!', 'لا توجد آراء بعد. كن أول من يقيّم!')}</p>`;
+      box.hidden = false; $('#reviews-title').hidden = false;
+      return;
+    }
+    const starRow = v => [1, 2, 3, 4, 5].map(i => `<i class="${v >= i - 0.25 ? 'on' : v >= i - 0.75 ? 'half' : ''}">★</i>`).join('');
+    const role = id => ROLES.find(x => x.id === id);
+    const age = a => a > AGE_RATING.max ? `${AGE_RATING.max}+` : a;
+    box.innerHTML = `
+      <div class="reviews-head">
+        <div class="reviews-score"><b>${d.avg.toFixed(1)}</b><span class="rstars" aria-hidden="true">${starRow(d.avg)}</span>
+          <small>${T(`${d.count} ratings`, `${d.count} تقييم`)}</small></div>
+        <div class="reviews-qs">${RATING_QUESTIONS.map(q => `
+          <div class="rq"><span>${q.icon} ${L(q.q)}</span><div class="bar"><i style="width:${(d.questions[q.id] / 5) * 100}%"></i></div><b>${d.questions[q.id].toFixed(1)}</b></div>`).join('')}
+        </div>
+      </div>
+      <div class="reviews-row">${d.recent.map(v => {
+        const ro = role(v.role);
+        return `<article class="review">
+          <div class="review-top"><span class="avatar" aria-hidden="true">${ro ? ro.icon : '✨'}</span>
+            <span>${ro ? esc(L(ro.name)) : ''} • ${T('age', 'العمر')} ${esc(age(v.age))}</span></div>
+          <div class="rstars" aria-label="${v.score} / 5">${starRow(v.score)}</div>
+          ${v.comment ? `<p>${esc(v.comment)}</p>` : ''}
+          ${v.favorite && meta(v.favorite) ? `<div class="review-fav">${T('Favorite', 'المفضّلة')}: ${gameIcon(v.favorite)}<span>${esc(L(meta(v.favorite).title))}</span></div>` : ''}
+        </article>`;
+      }).join('')}</div>`;
+    box.hidden = false; $('#reviews-title').hidden = false;
+  } catch {
+    box.hidden = true;   // no server here (e.g. an embedded preview): just leave the section out
+    $('#reviews-title')?.setAttribute('hidden', '');
+  }
 }
 
 async function sendRating(entry) {
