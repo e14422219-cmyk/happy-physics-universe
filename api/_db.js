@@ -84,6 +84,30 @@ async function telegram(message) {
   }
 }
 
+// Device from the browser's User-Agent, plus the screen size / model the page reports.
+function device(ua, extra) {
+  ua = String(ua || '');
+  const e = extra && typeof extra === 'object' ? extra : {};
+  let os = 'other', type = 'computer', osVer = '', m;
+  if (/iPhone/.test(ua)) { os = 'iPhone'; type = 'phone'; }
+  else if (/iPad/.test(ua) || (/Macintosh/.test(ua) && e.touch === true)) { os = 'iPad'; type = 'tablet'; }
+  else if (/Android/.test(ua)) { os = 'Android'; type = /Mobile/.test(ua) ? 'phone' : 'tablet'; }
+  else if (/Windows/.test(ua)) os = 'Windows';
+  else if (/CrOS/.test(ua)) os = 'ChromeOS';
+  else if (/Mac OS X|Macintosh/.test(ua)) os = 'Mac';
+  else if (/Linux/.test(ua)) os = 'Linux';
+  if ((os === 'iPhone' || os === 'iPad') && (m = ua.match(/OS (\d+)[_.](\d+)/))) osVer = m[1] + '.' + m[2];
+  else if (os === 'Android' && (m = ua.match(/Android (\d+(?:\.\d+)?)/))) osVer = m[1];
+  const BROWSERS = [[/Instagram/, 'Instagram'], [/FBAN|FBAV|FB_IAB/, 'Facebook'], [/Snapchat/, 'Snapchat'], [/musical_ly|TikTok|BytedanceWebview/, 'TikTok'],
+    [/WhatsApp/, 'WhatsApp'], [/Twitter/, 'X'], [/Edg(A|iOS)?\//, 'Edge'], [/OPR\/|Opera/, 'Opera'], [/SamsungBrowser/, 'Samsung Internet'],
+    [/CriOS/, 'Chrome'], [/FxiOS|Firefox\//, 'Firefox'], [/Chrome\//, 'Chrome'], [/Safari\//, 'Safari']];
+  const hit = BROWSERS.find(([re]) => re.test(ua));
+  let model = text(e.model, 40);
+  if (!model && os === 'Android' && (m = ua.match(/Android [\d.]+; ([^;)]+)/)) && m[1].trim() !== 'K') model = text(m[1], 40);
+  const screen = /^\d{2,5}x\d{2,5}$/.test(e.screen || '') ? e.screen : '';
+  return { type, os, osVer, browser: hit ? hit[1] : 'other', model, screen, ua: ua.slice(0, 300) };
+}
+
 const GAMES = ['bird', 'water', 'magnet', 'circuit', 'light', 'energy'];
 const ROLES = ['student', 'teacher', 'employee', 'parent', 'other'];
 const QUESTIONS = ['fun', 'learn', 'easy', 'look', 'recommend'];
@@ -92,4 +116,4 @@ const DEVICE_TYPES = ['phone', 'tablet', 'computer'];
 // Day key in Saudi time, so "today" matches the owner's day.
 const dayKey = (d = new Date()) => new Date(d.getTime() + 3 * 3600e3).toISOString().slice(0, 10);
 
-module.exports = { store, redis, pipeline, text, bodyOf, sameKey, isAdmin, telegram, GAMES, ROLES, QUESTIONS, DEVICE_TYPES, dayKey };
+module.exports = { store, redis, pipeline, text, bodyOf, sameKey, isAdmin, telegram, device, GAMES, ROLES, QUESTIONS, DEVICE_TYPES, dayKey };

@@ -150,6 +150,8 @@ function showWelcome() {
     const first = !store.profile;
     store.profile = { name: name.slice(0, 40), age: pick.age, role: pick.role };
     store.save();
+    // first time on this device: tell the owner a new player joined (Telegram alert, once per device)
+    if (first) deviceInfo().then(device => track('join', { ...store.profile, device }));
     sfx('ding');
     go('#/');
     if (first && !store.storySeen) showStory();

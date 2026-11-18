@@ -7,7 +7,7 @@
 // Environment: KV_REST_API_URL / KV_REST_API_TOKEN (added when Upstash Redis is connected), ADMIN_KEY,
 // and optionally TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID for an alert on every new rating.
 const crypto = require('crypto');
-const { store, redis, pipeline, text, bodyOf, isAdmin, telegram, GAMES, ROLES, QUESTIONS, dayKey } = require('./_db');
+const { store, redis, pipeline, text, bodyOf, isAdmin, telegram, device, GAMES, ROLES, QUESTIONS, dayKey } = require('./_db');
 
 const LIST = 'hpu:ratings';
 const HIDDEN = 'hpu:hidden';
@@ -39,30 +39,6 @@ function clean(b) {
     at: new Date().toISOString(),
     id: crypto.randomBytes(6).toString('hex')
   };
-}
-
-// Device from the browser's User-Agent, plus the screen size / model the page reports.
-function device(ua, extra) {
-  ua = String(ua || '');
-  const e = extra && typeof extra === 'object' ? extra : {};
-  let os = 'other', type = 'computer', osVer = '', m;
-  if (/iPhone/.test(ua)) { os = 'iPhone'; type = 'phone'; }
-  else if (/iPad/.test(ua) || (/Macintosh/.test(ua) && e.touch === true)) { os = 'iPad'; type = 'tablet'; }
-  else if (/Android/.test(ua)) { os = 'Android'; type = /Mobile/.test(ua) ? 'phone' : 'tablet'; }
-  else if (/Windows/.test(ua)) os = 'Windows';
-  else if (/CrOS/.test(ua)) os = 'ChromeOS';
-  else if (/Mac OS X|Macintosh/.test(ua)) os = 'Mac';
-  else if (/Linux/.test(ua)) os = 'Linux';
-  if ((os === 'iPhone' || os === 'iPad') && (m = ua.match(/OS (\d+)[_.](\d+)/))) osVer = m[1] + '.' + m[2];
-  else if (os === 'Android' && (m = ua.match(/Android (\d+(?:\.\d+)?)/))) osVer = m[1];
-  const BROWSERS = [[/Instagram/, 'Instagram'], [/FBAN|FBAV|FB_IAB/, 'Facebook'], [/Snapchat/, 'Snapchat'], [/musical_ly|TikTok|BytedanceWebview/, 'TikTok'],
-    [/WhatsApp/, 'WhatsApp'], [/Twitter/, 'X'], [/Edg(A|iOS)?\//, 'Edge'], [/OPR\/|Opera/, 'Opera'], [/SamsungBrowser/, 'Samsung Internet'],
-    [/CriOS/, 'Chrome'], [/FxiOS|Firefox\//, 'Firefox'], [/Chrome\//, 'Chrome'], [/Safari\//, 'Safari']];
-  const hit = BROWSERS.find(([re]) => re.test(ua));
-  let model = text(e.model, 40);
-  if (!model && os === 'Android' && (m = ua.match(/Android [\d.]+; ([^;)]+)/)) && m[1].trim() !== 'K') model = text(m[1], 40);
-  const screen = /^\d{2,5}x\d{2,5}$/.test(e.screen || '') ? e.screen : '';
-  return { type, os, osVer, browser: hit ? hit[1] : 'other', model, screen, ua: ua.slice(0, 300) };
 }
 
 const idOf = r => r.id || r.at;
