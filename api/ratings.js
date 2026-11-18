@@ -13,9 +13,21 @@ const ROLES = ['student', 'teacher', 'employee', 'parent', 'other'];
 const QUESTIONS = ['fun', 'learn', 'easy', 'look', 'recommend'];
 const GAMES = ['bird', 'water', 'magnet', 'circuit', 'light', 'energy'];
 
+// Vercel may add a custom prefix to the variable names (e.g. STORAGE_KV_REST_API_URL),
+// so look for any variable that ends with the expected name.
+function envEnding(...suffixes) {
+  for (const s of suffixes) if (process.env[s]) return process.env[s];
+  const keys = Object.keys(process.env);
+  for (const s of suffixes) {
+    const k = keys.find((key) => key.endsWith('_' + s) && process.env[key]);
+    if (k) return process.env[k];
+  }
+  return '';
+}
+
 function store() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = envEnding('KV_REST_API_URL', 'UPSTASH_REDIS_REST_URL');
+  const token = envEnding('KV_REST_API_TOKEN', 'UPSTASH_REDIS_REST_TOKEN');
   return url && token ? { url, token } : null;
 }
 
