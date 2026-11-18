@@ -1,5 +1,31 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "elias-physics-admin.vercel.app" }],
+      "destination": "/admin",
+      "permanent": false
+    },
+    {
+      "source": "/index",
+      "has": [{ "type": "host", "value": "elias-physics-admin.vercel.app" }],
+      "destination": "/admin",
+      "permanent": false
+    },
+    {
+      "source": "/admin",
+      "missing": [{ "type": "host", "value": "elias-physics-admin.vercel.app" }],
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/admin.html",
+      "missing": [{ "type": "host", "value": "elias-physics-admin.vercel.app" }],
+      "destination": "/",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -7,6 +33,10 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
+    },
+    {
+      "source": "/admin",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }, { "key": "Cache-Control", "value": "no-store" }]
     },
     {
       "source": "/(js|css|assets)/(.*)",
