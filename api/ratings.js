@@ -35,6 +35,7 @@ function clean(b) {
     comment: text(b.comment, 500),
     lang: b.lang === 'en' ? 'en' : 'ar',
     stars: Number.isInteger(b.stars) && b.stars >= 0 && b.stars <= 999 ? b.stars : 0,
+    site: b.site === 'plus' ? 'plus' : 'main',
     at: new Date().toISOString(),
     id: crypto.randomBytes(6).toString('hex')
   };
@@ -93,7 +94,7 @@ function alertText(e) {
   const stars = '⭐'.repeat(Math.round(score(e)));
   const d = e.device || {};
   return [
-    '🌟 تقييم جديد في كون الفيزياء السعيد',
+    `🌟 تقييم جديد في كون الفيزياء السعيد (${e.site === 'plus' ? 'الرابط الثاني' : 'الرابط الأول'})`,
     `👤 ${e.name} • العمر ${e.age > 16 ? '16+' : e.age} • ${ROLE_AR[e.role] || e.role}`,
     `${stars} (${round1(score(e))} من 5)`,
     e.favorite ? `🏅 المفضّلة: ${GAME_AR[e.favorite]}` : '',
@@ -132,7 +133,8 @@ module.exports = async (req, res) => {
       await pipeline(db, [
         ['LPUSH', LIST, JSON.stringify(entry)],
         ['LTRIM', LIST, '0', String(MAX_KEEP - 1)],
-        ['HINCRBY', 'hpu:days', `${dayKey()}:rating`, '1']
+        ['HINCRBY', 'hpu:days', `${dayKey()}:rating`, '1'],
+        ['HINCRBY', `hpu:days:${entry.site}`, `${dayKey()}:rating`, '1']
       ]);
       await telegram(alertText(entry));
       return res.status(201).json({ ok: true });

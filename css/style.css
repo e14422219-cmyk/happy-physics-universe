@@ -222,7 +222,8 @@ button { font-family: inherit; }
 .cert-chip svg { width: 100%; height: 100%; display: block; }
 .cert-chip.grand { background: linear-gradient(135deg, #ffd36b, #ff4fd8); }
 .cert-locked { font-size: 2.4rem; opacity: .55; }
-@media (max-width: 900px) { .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } .feature.cert { grid-column: 1 / -1; } }
+.features.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 900px) { .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } .features:not(.two) .feature.cert { grid-column: 1 / -1; } }
 @media (max-width: 600px) { .features { grid-template-columns: 1fr; } }
 
 /* heroes board (inside the light modal) */

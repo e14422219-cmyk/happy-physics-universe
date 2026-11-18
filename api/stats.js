@@ -40,15 +40,17 @@ module.exports = async (req, res) => {
   const db = store();
   if (!db) return res.status(503).json({ error: 'storage-not-configured' });
   const days = Array.from({ length: 30 }, (_, i) => dayKey(new Date(Date.now() - (29 - i) * 86400e3)));
+  // ?site=main|plus → one link only; otherwise both links together
+  const sfx = q.site === 'main' || q.site === 'plus' ? `:${q.site}` : '';
   try {
     const out = await pipeline(db, [
-      ['HGETALL', 'hpu:lv'],
-      ['HGETALL', 'hpu:days'],
-      ['PFCOUNT', 'hpu:u'],
-      ['HGETALL', 'hpu:dev'],
+      ['HGETALL', `hpu:lv${sfx}`],
+      ['HGETALL', `hpu:days${sfx}`],
+      ['PFCOUNT', `hpu:u${sfx}`],
+      ['HGETALL', `hpu:dev${sfx}`],
       ['ZREVRANGE', 'hpu:lb', '0', '99', 'WITHSCORES'],
       ['HGETALL', 'hpu:lbn'],
-      ...days.map(d => ['PFCOUNT', `hpu:u:${d}`])
+      ...days.map(d => ['PFCOUNT', `hpu:u${sfx}:${d}`])
     ]);
     const [lv, dayFlat, players, dev, lb, lbn] = out;
     const daily = hash(dayFlat);

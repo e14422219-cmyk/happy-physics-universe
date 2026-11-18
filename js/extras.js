@@ -5,6 +5,15 @@ import { T, L, getLang } from './i18n.js';
 import { gameIcon } from './icons.js';
 
 let ctx = null;   // { MODULES, openModal, closeModal, go, sfx, toast }
+
+// Two public links share this code:
+//   happy-physics-universe.vercel.app → "main": heroes board and certificates
+//   happy-physics-plus.vercel.app     → "plus": everything (adds the daily challenge and teacher mode)
+// Local previews show everything so all features can be tried.
+const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+export const SITE = /happy-physics-plus\./.test(location.hostname) ? 'plus'
+  : LOCAL ? (new URLSearchParams(location.search).get('site') === 'main' ? 'main' : 'plus') : 'main';
+export const FULL = SITE === 'plus';
 export function initExtras(c) { ctx = c; }
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -30,7 +39,7 @@ const deviceType = () => {
 
 // Fire-and-forget; works offline or inside previews without a server (the request just fails quietly).
 export function track(type, extra = {}) {
-  const body = JSON.stringify({ type, pid: playerId(), ...extra });
+  const body = JSON.stringify({ type, pid: playerId(), site: SITE, ...extra });
   try {
     if (navigator.sendBeacon && navigator.sendBeacon('/api/events', new Blob([body], { type: 'text/plain' }))) return;
   } catch { /* fall back to fetch */ }
@@ -146,6 +155,7 @@ export function streak() {
 
 // Called after every win; returns true when this win completed today's challenge for the first time.
 export function checkDaily(id, levelIndex) {
+  if (!FULL) return false;
   const p = dailyPick();
   if (p.id !== id || p.level !== levelIndex || store.daily[today()]) return false;
   store.daily[today()] = true;
@@ -154,6 +164,7 @@ export function checkDaily(id, levelIndex) {
 }
 
 export function dailyCardHTML() {
+  if (!FULL) return '';
   const p = dailyPick(), g = meta(p.id), lv = ctx.MODULES[p.id].levels[p.level];
   const done = !!store.daily[today()], s = streak();
   return `

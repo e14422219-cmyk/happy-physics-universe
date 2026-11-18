@@ -6,7 +6,7 @@ import { gameIcon } from './icons.js';
 import { Stage } from './engine.js';
 import { sfx } from './audio.js';
 import { startSky } from './sky.js';
-import { initExtras, track, trackVisit, signatureHTML, showBoard, syncBoard, dailyCardHTML, dailyPick, checkDaily, streak, boardCardHTML, certificatesHTML, showCertificate } from './extras.js';
+import { initExtras, track, trackVisit, signatureHTML, showBoard, syncBoard, dailyCardHTML, dailyPick, checkDaily, streak, boardCardHTML, certificatesHTML, showCertificate, SITE, FULL } from './extras.js';
 
 import bird from './games/bird.js';
 import water from './games/water.js';
@@ -200,7 +200,7 @@ function showHome() {
       ${GAMES.map((g, i) => tileHTML(g, i)).join('')}
     </section>
     <h2 class="section-title display">✨ ${T('Challenges & rewards', 'التحديات والجوائز')}</h2>
-    <section class="features">
+    <section class="features ${FULL ? '' : 'two'}">
       ${dailyCardHTML()}
       ${boardCardHTML()}
       ${certificatesHTML()}
@@ -312,11 +312,12 @@ function showGameIntro(id, levelIndex) {
 
 // Teacher mode: bigger equations and readouts for the class screen, plus pause and slow motion.
 function wireTeacher() {
-  const on = !!store.settings.teacher;
+  const on = FULL && !!store.settings.teacher;   // teacher mode is part of the second (full) link only
   document.body.classList.toggle('teacher', on);
   stage.paused = false;
   stage.speed = on ? (store.settings.speed || 1) : 1;
   const teach = $('#g-teach'), pause = $('#g-pause'), speed = $('#g-speed');
+  teach.hidden = !FULL;
   teach.classList.toggle('on', on);
   teach.title = teach.ariaLabel = on ? T('Teacher mode: on', 'وضع المعلم: مفعّل') : T('Teacher mode', 'وضع المعلم');
   pause.textContent = '⏸';
@@ -622,7 +623,7 @@ function showRate() {
     const missing = RATING_QUESTIONS.filter(q => !answers[q.id]);
     if (missing.length) { $('#r-err').textContent = T('Please give stars to every question.', 'من فضلك أعطِ نجومًا لكل سؤال.'); sfx('bad'); return; }
     $('#r-err').textContent = '';
-    const entry = { name: p.name, age: p.age, role: p.role, answers, favorite: fav, comment: $('#r-comment').value.trim().slice(0, 500), lang: getLang(), stars: totalStars(), device: await deviceInfo() };
+    const entry = { name: p.name, age: p.age, role: p.role, answers, favorite: fav, comment: $('#r-comment').value.trim().slice(0, 500), lang: getLang(), stars: totalStars(), device: await deviceInfo(), site: SITE };
     const btn = $('#r-send');
     btn.disabled = true;
     btn.textContent = T('Sending…', 'جارٍ الإرسال…');

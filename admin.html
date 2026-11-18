@@ -99,7 +99,9 @@
       background: rgba(10, 8, 34, .82); border: 1px solid var(--line); backdrop-filter: blur(12px); scrollbar-width: none; }
     .tabs button { flex: none; background: transparent; color: var(--soft); box-shadow: none; padding: 8px 16px; min-height: 40px; }
     .tabs button.on { background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: #2a1600; box-shadow: 0 4px 14px rgba(245, 201, 106, .35); }
-    .head-actions { display: flex; gap: 6px; }
+    .head-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .head-actions select { min-height: 36px; padding: 4px 12px; border-radius: 999px; border-color: var(--line-gold); }
+    .site-tag { display: inline-block; margin-inline-start: 6px; padding: 0 7px; border-radius: 99px; font-size: .7rem; font-weight: 800; background: rgba(140, 107, 255, .2); color: #d6cbff; vertical-align: middle; }
 
     .grid { display: grid; gap: 14px; }
     .kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
@@ -244,6 +246,11 @@
         <div class="spacer"></div>
         <div id="sig-top"></div>
         <div class="head-actions">
+          <select id="site" aria-label="أي رابط؟" title="أي رابط؟">
+            <option value="">🌐 الرابطان معًا</option>
+            <option value="main">🎮 الرابط الأول</option>
+            <option value="plus">✨ الرابط الثاني</option>
+          </select>
           <button class="ghost mini" id="refresh" type="button" title="تحديث" aria-label="تحديث">↻ تحديث</button>
           <button class="ghost mini" id="logout" type="button">خروج</button>
         </div>
@@ -427,7 +434,7 @@
         keepKey(key);
         ratings = j.ratings || [];
         hidden = new Set(j.hidden || []);
-        stats = await api('/api/stats').then(x => x.ok ? x.json() : null).catch(() => null);
+        stats = await loadStats();
         $('#err').textContent = '';
         $('#login-view').hidden = true;
         $('#app').hidden = false;
@@ -437,6 +444,11 @@
         $('#err').textContent = 'تعذّر الاتصال بالخادم. افتح هذه الصفحة من رابط Vercel.';
       }
     }
+
+    const site = () => $('#site').value;
+    const siteOf = r => r.site || 'main';   // ratings sent before the second link existed came from the first one
+    const siteRatings = () => site() ? ratings.filter(r => siteOf(r) === site()) : ratings;
+    const loadStats = () => api('/api/stats' + (site() ? '?site=' + site() : '')).then(x => x.ok ? x.json() : null).catch(() => null);
 
     function bars(el, entries, max, f = v => v) {
       el.innerHTML = entries.length ? entries.map(([label, v]) =>
@@ -459,6 +471,7 @@
     }
 
     function renderOverview() {
+      const R = siteRatings();
       const days = stats?.days || [];
       const sum = k => days.reduce((a, d) => a + (d[k] || 0), 0);
       $('#k-players').textContent = fmt(stats?.players || 0);
@@ -466,18 +479,18 @@
       $('#k-starts').textContent = fmt(sum('starts'));
       const st = sum('starts');
       $('#k-success').textContent = st ? Math.round((sum('wins') / st) * 100) + '%' : '—';
-      $('#k-count').textContent = fmt(ratings.length);
-      const week = ratings.filter(r => Date.now() - new Date(r.at) < 7 * 86400e3).length;
+      $('#k-count').textContent = fmt(R.length);
+      const week = R.filter(r => Date.now() - new Date(r.at) < 7 * 86400e3).length;
       $('#k-count-sub').textContent = `${week} في آخر 7 أيام`;
-      const avg = ratings.length ? ratings.reduce((a, r) => a + scoreOf(r), 0) / ratings.length : 0;
-      $('#k-avg').textContent = ratings.length ? avg.toFixed(1) : '—';
+      const avg = R.length ? R.reduce((a, r) => a + scoreOf(r), 0) / R.length : 0;
+      $('#k-avg').textContent = R.length ? avg.toFixed(1) : '—';
       drawTrend();
       const dev = stats?.devices || {};
       const devEntries = Object.entries(dev).map(([k, v]) => [TYPES[k] || k, v]).sort((a, b) => b[1] - a[1]);
       bars($('#visit-dev'), devEntries, devEntries[0]?.[1], fmt);
-      const avgOf = k => ratings.length ? ratings.reduce((a, r) => a + (r.answers?.[k] || 0), 0) / ratings.length : 0;
-      bars($('#by-q'), ratings.length ? Object.entries(QS).map(([k, l]) => [l, avgOf(k)]) : [], 5, v => v.toFixed(1));
-      const byFav = count(ratings, r => GAMES[r.favorite] ? GAMES[r.favorite].join(' ') : '');
+      const avgOf = k => R.length ? R.reduce((a, r) => a + (r.answers?.[k] || 0), 0) / R.length : 0;
+      bars($('#by-q'), R.length ? Object.entries(QS).map(([k, l]) => [l, avgOf(k)]) : [], 5, v => v.toFixed(1));
+      const byFav = count(R, r => GAMES[r.favorite] ? GAMES[r.favorite].join(' ') : '');
       bars($('#by-fav'), byFav, byFav[0]?.[1]);
       const hard = levelRows().filter(x => x.starts >= 5).sort((a, b) => a.rate - b.rate).slice(0, 5);
       $('#hard-top').innerHTML = hard.length ? hard.map(x => `
@@ -532,7 +545,7 @@
       const q = $('#search').value.trim().toLowerCase(), role = $('#f-role').value, dev = $('#f-dev').value;
       const from = $('#f-from').value ? new Date($('#f-from').value + 'T00:00:00') : null;
       const to = $('#f-to').value ? new Date($('#f-to').value + 'T23:59:59') : null;
-      return ratings.filter(r => {
+      return siteRatings().filter(r => {
         const at = new Date(r.at);
         if (role && r.role !== role) return false;
         if (dev === 'none' ? !!r.device : (dev && r.device?.type !== dev)) return false;
@@ -558,7 +571,7 @@
       bars($('#by-browser'), byBrowser, byBrowser[0]?.[1]);
       $('#rows').innerHTML = list.map(r => `<tr class="${hidden.has(r.id) ? 'is-hidden' : ''}">
         <td class="num">${esc(new Date(r.at).toLocaleString('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }))}</td>
-        <td class="name">${esc(r.name)}</td><td class="num">${esc(ageLabel(r.age))}</td><td>${esc(ROLES[r.role] || r.role)}</td>
+        <td class="name">${esc(r.name)}<span class="site-tag">${siteOf(r) === 'plus' ? '✨ الثاني' : '🎮 الأول'}</span></td><td class="num">${esc(ageLabel(r.age))}</td><td>${esc(ROLES[r.role] || r.role)}</td>
         ${Object.keys(QS).map(k => `<td class="stars" title="${r.answers?.[k] || 0}/5">${stars(r.answers?.[k] || 0)}</td>`).join('')}
         <td>${esc(GAMES[r.favorite] ? GAMES[r.favorite].join(' ') : '—')}</td><td class="comment">${esc(r.comment || '')}</td>
         <td class="dev" title="${esc(r.device?.ua || '')}">${r.device ? `${esc(devName(r.device))} · ${esc(browserName(r.device))}
@@ -693,6 +706,13 @@
     $('#f-clear').onclick = () => { ['#search', '#f-role', '#f-dev', '#f-from', '#f-to'].forEach(s => $(s).value = ''); renderRatings(); };
     $('#login').onsubmit = e => { e.preventDefault(); const k = $('#key').value; if (k) load(k); };
     $('#refresh').onclick = () => load(storedKey());
+    $('#site').onchange = async () => {
+      try { sessionStorage.setItem('hpu-admin-site', site()); } catch {}
+      stats = await loadStats();
+      renderAll();
+      toast(site() === 'plus' ? 'تعرض الآن: الرابط الثاني' : site() === 'main' ? 'تعرض الآن: الرابط الأول' : 'تعرض الآن: الرابطين معًا');
+    };
+    try { $('#site').value = sessionStorage.getItem('hpu-admin-site') || ''; } catch {}
     $('#csv').onclick = csv;
     $('#logout').onclick = () => { keepKey(''); ratings = []; stats = null; $('#app').hidden = true; $('#login-view').hidden = false; $('#key').value = ''; };
     if (storedKey()) load(storedKey());
