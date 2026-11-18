@@ -1,8 +1,8 @@
 // Play statistics: visits, level starts, wins and fails (anonymous), plus a "new player" alert.
 //   POST /api/events  body {type: visit|start|win|fail|join, pid, site?, game?, level?, stars?, device?, name?, age?, role?}
 // pid is a random id the browser keeps, used only to count unique players.
-// "join" is sent once, when a player fills in the welcome page for the first time: it counts the
-// new player and sends the owner a Telegram message (name, age, role, device, link).
+// "join" is sent every time a player enters (after the welcome page, then once per visit): it counts the
+// entry and sends the owner a Telegram message (new or returning player, name, age, role, device, link).
 const { store, pipeline, bodyOf, text, telegram, device, GAMES, ROLES, DEVICE_TYPES, dayKey } = require('./_db');
 
 const TYPES = ['visit', 'start', 'win', 'fail', 'join'];
@@ -28,10 +28,11 @@ async function join(db, b, site, req) {
     ['HINCRBY', 'hpu:days', `${day}:join`, '1'],
     ['HINCRBY', `hpu:days:${site}`, `${day}:join`, '1']
   ]);
-  if (!isNew || perMinute > JOIN_ALERTS_PER_MINUTE) return 204;   // this device already announced, or too many at once
+  if (perMinute > JOIN_ALERTS_PER_MINUTE) return 204;   // too many at once: count them but spare the owner's phone
   const d = device(req.headers['user-agent'], b.device);
+  const link = site === 'plus' ? 'الرابط الثاني' : 'الرابط الأول';
   await telegram([
-    `🎉 لاعب جديد دخل كون الفيزياء السعيد (${site === 'plus' ? 'الرابط الثاني' : 'الرابط الأول'})`,
+    isNew ? `🎉 لاعب جديد دخل كون الفيزياء السعيد (${link})` : `🔁 لاعب دخل كون الفيزياء السعيد (${link})`,
     `👤 ${name} • العمر ${age > 16 ? '16+' : age} • ${ROLE_AR[role]}`,
     `${TYPE_AR[d.type] || '📱'} ${OS_AR[d.os] || d.os}${d.osVer ? ' ' + d.osVer : ''}${d.browser !== 'other' ? ' • ' + d.browser : ''}`
   ].join('\n'));

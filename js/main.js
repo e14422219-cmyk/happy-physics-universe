@@ -150,8 +150,7 @@ function showWelcome() {
     const first = !store.profile;
     store.profile = { name: name.slice(0, 40), age: pick.age, role: pick.role };
     store.save();
-    // first time on this device: tell the owner a new player joined (Telegram alert, once per device)
-    if (first) deviceInfo().then(device => track('join', { ...store.profile, device }));
+    announceEntry();
     sfx('ding');
     go('#/');
     if (first && !store.storySeen) showStory();
@@ -637,6 +636,13 @@ function showRate() {
   };
 }
 
+// Tell the owner (Telegram) that a player entered: once per visit, as soon as we know their name.
+function announceEntry() {
+  if (!store.profile) return;
+  try { if (sessionStorage.getItem('hpu-entered')) return; sessionStorage.setItem('hpu-entered', '1'); } catch { /* still announce */ }
+  deviceInfo().then(device => track('join', { ...store.profile, device }));
+}
+
 // Extra device details the server cannot read from the request: screen size, touch, and the phone model where the browser shares it.
 async function deviceInfo() {
   const info = { screen: `${Math.round(screen.width)}x${Math.round(screen.height)}`, touch: (navigator.maxTouchPoints || 0) > 0 };
@@ -804,6 +810,7 @@ applyDir();
 route();
 flushPending();
 trackVisit();
+announceEntry();
 syncBoard();
 window.__booted = true;
 document.getElementById('boot-error').hidden = true;
